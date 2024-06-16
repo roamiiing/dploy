@@ -1,10 +1,17 @@
+use std::collections::HashMap;
+
+use anyhow::Result;
+use bollard::{container, models};
+
 use crate::context::Context;
 
-use super::{EnvVars, ServiceKind};
+use super::{EnvVars, ServiceKind, ToContainerConfig};
 
 const DEFAULT_PORT: u16 = 5432;
 const DEFAULT_USER: &str = "admin";
 const DEFAULT_PASSWORD: &str = "admin";
+
+const IMAGE_NAME: &str = "postgres:15";
 
 pub struct PostgresService {
     expose_url_to_env: Option<String>,
@@ -19,6 +26,8 @@ pub struct PostgresService {
 
 impl PostgresService {
     pub fn new(context: &Context) -> Option<Self> {
+        let port = context.port(DEFAULT_PORT);
+
         context.app_config().postgres().map(|config| Self {
             expose_url_to_env: config.expose_url_to_env().map(ToOwned::to_owned),
 
@@ -30,7 +39,7 @@ impl PostgresService {
             database_password: DEFAULT_PASSWORD.to_owned(),
 
             external_host: context.host_of(ServiceKind::Postgres),
-            external_port: context.port(DEFAULT_PORT),
+            external_port: port,
         })
     }
 
@@ -59,5 +68,40 @@ impl EnvVars for PostgresService {
         }
 
         vars
+    }
+}
+
+impl ToContainerConfig for PostgresService {
+    fn to_container_config(&self, context: &Context) -> Result<container::Config<String>> {
+        let mut config = container::Config {
+            image: Some(IMAGE_NAME.to_owned()),
+            hostname: Some(context.container_name_of(ServiceKind::Postgres)),
+            domainname: Some(context.container_name_of(ServiceKind::Postgres)),
+
+            env: Some(vec![
+                format!("POSTGRES_DB={}", self.database_name),
+                format!("POSTGRES_USER={}", self.database_user),
+                format!("POSTGRES_PASSWORD={}", self.database_password),
+            ]),
+
+            ..Default::default()
+        };
+
+        if context.should_expose_to_host() {
+            let port_binding = models::PortBinding {
+                host_ip: Some("0.0.0.0".to_owned()),
+                host_port: Some(format!("{}", self.external_port)),
+            };
+
+            let bindings_map =
+                HashMap::from([(format!("{}/tcp", DEFAULT_PORT), Some(vec![port_binding]))]);
+
+            config.host_config = Some(models::HostConfig {
+                port_bindings: Some(bindings_map),
+                ..Default::default()
+            })
+        }
+
+        Ok(config)
     }
 }

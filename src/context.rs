@@ -35,6 +35,10 @@ impl Context {
         format!("{prefix}_{suffix}_default")
     }
 
+    pub fn should_expose_to_host(&self) -> bool {
+        matches!(self.args.command(), Command::Deploy | Command::Run { .. })
+    }
+
     pub fn host_of(&self, service_kind: ServiceKind) -> String {
         use Command::*;
 

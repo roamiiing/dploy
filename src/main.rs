@@ -12,7 +12,8 @@ mod presentation;
 mod services;
 mod utils;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = cli::Args::try_parse()?;
 
     presentation::print_cli_info();
