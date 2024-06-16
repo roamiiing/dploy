@@ -9,6 +9,8 @@ mod cli;
 mod config;
 mod context;
 mod presentation;
+mod services;
+mod utils;
 
 fn main() -> Result<()> {
     let args = cli::Args::try_parse()?;

@@ -59,6 +59,10 @@ impl PostgresConfig {
     pub fn expose_url_to_env(&self) -> Option<&str> {
         self.expose_url_to_env.as_deref()
     }
+
+    pub fn database_name(&self) -> Option<&str> {
+        self.database_name.as_deref()
+    }
 }
 
 #[derive(Debug, Deserialize)]
