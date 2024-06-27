@@ -3,11 +3,14 @@
 use std::fs;
 
 use anyhow::Result;
+use bollard::Docker;
 use clap::Parser;
+use deploy::deploy;
 
 mod cli;
 mod config;
 mod context;
+mod deploy;
 mod presentation;
 mod services;
 mod utils;
@@ -29,8 +32,11 @@ async fn main() -> Result<()> {
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
     let context = context::Context::new(args, app_config);
+    let docker = Docker::connect_with_defaults()?;
 
-    println!("{:#?}", context);
+    docker.ping().await?;
+
+    deploy(&context, &docker).await?;
 
     Ok(())
 }

@@ -9,9 +9,13 @@ pub struct AppConfig {
     #[serde(default)]
     dockerfile: Option<String>,
 
-    /// Names of environment variables of the user's application
+    /// Names of environment variables of the application service
     #[serde(default)]
     env: Vec<String>,
+
+    /// Ports exposed by the application service
+    #[serde(default)]
+    ports: Vec<u16>,
 
     /// Configuration for Postgres
     #[serde(default)]
@@ -33,6 +37,10 @@ impl AppConfig {
 
     pub fn env(&self) -> &[String] {
         &self.env
+    }
+
+    pub fn ports(&self) -> &[u16] {
+        &self.ports
     }
 
     pub fn postgres(&self) -> Option<&PostgresConfig> {

@@ -316,6 +316,7 @@ dependencies = [
  "chrono",
  "clap",
  "console",
+ "futures-util",
  "serde",
  "tokio",
  "toml",

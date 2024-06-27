@@ -18,3 +18,32 @@ pub fn print_config_not_found_error() {
     );
     eprintln!("or specify the path to the config file with the --config flag.\n");
 }
+
+#[inline]
+pub fn print_dependency_pulling(name: &str) {
+    println!("[{}] Pulling", style(name).cyan());
+}
+
+#[inline]
+pub fn print_dependency_creating(name: &str) {
+    println!("[{}] Creating", style(name).cyan());
+}
+
+#[inline]
+pub fn print_dependency_starting(name: &str) {
+    println!("[{}] Starting", style(name).cyan());
+}
+
+#[inline]
+pub fn print_dependency_success(name: &str) {
+    println!("[{}] {}\n", style(name).cyan(), style("Success").green());
+}
+
+#[inline]
+pub fn print_dependency_exists(name: &str) {
+    println!(
+        "[{}] {}\n",
+        style(name).cyan(),
+        style("No need to replace").green(),
+    );
+}

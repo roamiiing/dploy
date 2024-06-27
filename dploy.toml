@@ -1,1 +1,4 @@
 name = "example"
+
+[postgres]
+expose_url_to_env = "SERVICE_DATABASE_URL"

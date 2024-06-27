@@ -28,15 +28,33 @@ impl Context {
         let prefix = self.app_config.name();
 
         let suffix = match service_kind {
-            ServiceKind::Postgres => "postgres".to_owned(),
-            ServiceKind::Keydb => "keydb".to_owned(),
+            ServiceKind::Postgres => "postgres",
+            ServiceKind::Keydb => "keydb",
+            ServiceKind::App => self.app_config.name(),
         };
 
+        // TODO: Allow users to customize the "default" part
+        // to deploy different versions of the same service
+        // simultaneously
         format!("{prefix}_{suffix}_default")
     }
 
     pub fn should_expose_to_host(&self) -> bool {
-        matches!(self.args.command(), Command::Deploy | Command::Run { .. })
+        use Command::*;
+
+        matches!(self.args.command(), Dev { .. })
+    }
+
+    pub fn should_expose_app_service_to_host(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Run { .. })
+    }
+
+    pub fn should_create_app_service(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Deploy | Run { .. })
     }
 
     pub fn host_of(&self, service_kind: ServiceKind) -> String {
@@ -52,7 +70,7 @@ impl Context {
         use Command::*;
 
         match self.args.command() {
-            Deploy | Run { .. } => free_port(),
+            Dev { .. } => free_port(),
             _ => inner_port,
         }
     }
