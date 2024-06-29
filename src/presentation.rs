@@ -47,3 +47,13 @@ pub fn print_dependency_exists(name: &str) {
         style("No need to replace").green(),
     );
 }
+
+#[inline]
+pub fn print_starting_dependencies() {
+    println!("{}", style("Starting dependencies").cyan());
+}
+
+#[inline]
+pub fn print_generating_env_file() {
+    println!("{}", style("Generating env file").cyan());
+}

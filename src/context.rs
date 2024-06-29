@@ -57,6 +57,12 @@ impl Context {
         matches!(self.args.command(), Deploy | Run { .. })
     }
 
+    pub fn should_generate_env_file(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Dev { .. })
+    }
+
     pub fn host_of(&self, service_kind: ServiceKind) -> String {
         use Command::*;
 

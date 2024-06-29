@@ -1,4 +1,6 @@
 name = "example"
 
+env = ["SERVICE_BOT_TOKEN"]
+
 [postgres]
 expose_url_to_env = "SERVICE_DATABASE_URL"

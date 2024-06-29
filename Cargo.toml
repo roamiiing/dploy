@@ -9,6 +9,7 @@ bollard = { version = "0.16.1", features = ["ssl", "chrono"] }
 chrono = "0.4.38"
 clap = { version = "4.5.7", features = ["derive"] }
 console = "0.15.8"
+dotenvy = "0.15.7"
 futures-util = "0.3.30"
 serde = { version = "1.0.203", features = ["derive"] }
 tokio = { version = "1.38.0", features = ["rt-multi-thread", "tokio-macros", "macros"] }
