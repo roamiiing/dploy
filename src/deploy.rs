@@ -31,6 +31,52 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
     Ok(())
 }
 
+pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
+    let services = Services::from_context(context);
+
+    presentation::print_stopping_dependencies();
+    stop_dependencies(&services, context, docker).await?;
+
+    Ok(())
+}
+
+pub async fn stop_dependencies(
+    services: &Services,
+    context: &Context,
+    docker: &Docker,
+) -> Result<()> {
+    let container_configs = services.to_container_configs(&context)?;
+
+    for config in container_configs {
+        let container_name = config.container_name();
+
+        let existing_container = match docker.inspect_container(container_name, None).await {
+            Ok(container) => Some(container),
+            Err(bollard::errors::Error::DockerResponseServerError {
+                status_code: 404, ..
+            }) => None,
+            Err(e) => return Err(e.into()),
+        };
+
+        presentation::print_dependency_stopping(container_name);
+        if should_stop_container(existing_container.as_ref()) {
+            docker.stop_container(container_name, None).await?;
+            presentation::print_dependency_stopped(container_name);
+        } else {
+            presentation::print_dependency_already_stopped(container_name);
+        }
+    }
+
+    Ok(())
+}
+
+pub fn should_stop_container(existing_container: Option<&ContainerInspectResponse>) -> bool {
+    existing_container
+        .and_then(|existing_container| existing_container.state.as_ref())
+        .and_then(|state| state.running)
+        .is_some_and(|running| running)
+}
+
 pub fn generate_env(services: &Services, context: &Context) -> Result<()> {
     let existing_env = get_existing_env();
     let services_env_vars = services.env_vars();
@@ -172,16 +218,14 @@ pub async fn deploy_dependencies(
                     config.clone(),
                 )
                 .await?;
-
-            presentation::print_dependency_starting(container_name);
-            docker
-                .start_container(container_name, None::<StartContainerOptions<String>>)
-                .await?;
-
-            presentation::print_dependency_success(container_name);
-        } else {
-            presentation::print_dependency_exists(container_name);
         }
+
+        presentation::print_dependency_starting(container_name);
+        docker
+            .start_container(container_name, None::<StartContainerOptions<String>>)
+            .await?;
+
+        presentation::print_dependency_success(container_name);
     }
 
     Ok(())

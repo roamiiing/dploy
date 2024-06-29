@@ -5,7 +5,7 @@ use std::fs;
 use anyhow::Result;
 use bollard::Docker;
 use clap::Parser;
-use deploy::deploy;
+use deploy::{deploy, stop};
 
 mod cli;
 mod config;
@@ -36,7 +36,11 @@ async fn main() -> Result<()> {
 
     docker.ping().await?;
 
-    deploy(&context, &docker).await?;
+    if context.args().command().stop() {
+        stop(&context, &docker).await?;
+    } else {
+        deploy(&context, &docker).await?;
+    }
 
     Ok(())
 }

@@ -40,15 +40,6 @@ pub fn print_dependency_success(name: &str) {
 }
 
 #[inline]
-pub fn print_dependency_exists(name: &str) {
-    println!(
-        "[{}] {}\n",
-        style(name).cyan(),
-        style("No need to replace").green(),
-    );
-}
-
-#[inline]
 pub fn print_starting_dependencies() {
     println!("{}", style("Starting dependencies").cyan());
 }
@@ -56,4 +47,28 @@ pub fn print_starting_dependencies() {
 #[inline]
 pub fn print_generating_env_file() {
     println!("{}", style("Generating env file").cyan());
+}
+
+#[inline]
+pub fn print_stopping_dependencies() {
+    println!("{}", style("Stopping dependencies").cyan());
+}
+
+#[inline]
+pub fn print_dependency_stopping(name: &str) {
+    println!("[{}] Stopping", style(name).cyan());
+}
+
+#[inline]
+pub fn print_dependency_stopped(name: &str) {
+    println!("[{}] {}\n", style(name).cyan(), style("Stopped").green());
+}
+
+#[inline]
+pub fn print_dependency_already_stopped(name: &str) {
+    println!(
+        "[{}] {}\n",
+        style(name).cyan(),
+        style("Already stopped").green(),
+    );
 }
