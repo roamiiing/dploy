@@ -5,12 +5,16 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.86"
-bollard = { version = "0.16.1", features = ["ssl", "chrono"] }
+bollard = { version = "0.16.1", features = ["ssl", "chrono", "buildkit"] }
 chrono = "0.4.38"
 clap = { version = "4.5.7", features = ["derive"] }
 console = "0.15.8"
 dotenvy = "0.15.7"
+flate2 = "1.0.30"
 futures-util = "0.3.30"
+ignore = "0.4.22"
 serde = { version = "1.0.203", features = ["derive"] }
+tar = "0.4.41"
+tempfile = "3.10.1"
 tokio = { version = "1.38.0", features = ["rt-multi-thread", "tokio-macros", "macros"] }
 toml = "0.8.14"

@@ -13,20 +13,35 @@ use std::{
     path::Path,
 };
 
-use crate::{context::Context, presentation, services::Services};
+use crate::{
+    build::build_app_service_image,
+    context::Context,
+    presentation,
+    services::{app::AppService, Services},
+};
 
 const ENV_FILE_NAME: &str = ".env";
 
 pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
+    if dotenvy::from_path(ENV_FILE_NAME).is_ok() {
+        presentation::print_env_file_loaded();
+    } else {
+        presentation::print_env_file_failed_to_load();
+    }
+
     let services = Services::from_context(context);
 
     if context.should_generate_env_file() {
-        presentation::print_generating_env_file();
+        presentation::print_env_file_generating();
         generate_env(&services, context)?;
     }
 
-    presentation::print_starting_dependencies();
+    presentation::print_dependencies_starting();
     deploy_dependencies(&services, context, docker).await?;
+
+    if let Some(service) = services.app() {
+        deploy_app_service(service, docker).await?;
+    }
 
     Ok(())
 }
@@ -34,17 +49,75 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
 pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
     let services = Services::from_context(context);
 
-    presentation::print_stopping_dependencies();
+    presentation::print_dependencies_stopping();
     stop_dependencies(&services, context, docker).await?;
 
     Ok(())
 }
 
-pub async fn stop_dependencies(
-    services: &Services,
-    context: &Context,
-    docker: &Docker,
-) -> Result<()> {
+async fn deploy_app_service(app_service: &AppService, docker: &Docker) -> Result<()> {
+    let container_config = app_service.to_container_config();
+    let container_name = container_config.container_name();
+
+    presentation::print_image_building(container_name);
+    build_app_service_image(app_service, docker).await?;
+    presentation::print_image_built(container_name);
+
+    let existing_container = match docker.inspect_container(container_name, None).await {
+        Ok(container) => Some(container),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => None,
+        Err(e) => return Err(e.into()),
+    };
+
+    if existing_container.is_some() {
+        presentation::print_app_container_removing(container_name);
+        docker.stop_container(container_name, None).await?;
+        docker.remove_container(container_name, None).await?;
+    }
+
+    presentation::print_app_container_creating(container_name);
+    docker
+        .create_container(
+            Some(container::CreateContainerOptions {
+                name: container_name,
+                ..Default::default()
+            }),
+            container_config.config().clone(),
+        )
+        .await?;
+
+    presentation::print_app_container_starting(container_name);
+    docker
+        .start_container(container_name, None::<StartContainerOptions<String>>)
+        .await?;
+
+    presentation::print_app_container_success(container_name);
+
+    Ok(())
+}
+
+async fn stop_app_service(app_service: &AppService, docker: &Docker) -> Result<()> {
+    let container_config = app_service.to_container_config();
+    let container_name = container_config.container_name();
+
+    let existing_container = match docker.inspect_container(container_name, None).await {
+        Ok(container) => Some(container),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => None,
+        Err(e) => return Err(e.into()),
+    };
+
+    if should_stop_container(existing_container.as_ref()) {
+        docker.stop_container(container_name, None).await?;
+    }
+
+    Ok(())
+}
+
+async fn stop_dependencies(services: &Services, context: &Context, docker: &Docker) -> Result<()> {
     let container_configs = services.to_container_configs(&context)?;
 
     for config in container_configs {
@@ -70,15 +143,18 @@ pub async fn stop_dependencies(
     Ok(())
 }
 
-pub fn should_stop_container(existing_container: Option<&ContainerInspectResponse>) -> bool {
+fn should_stop_container(existing_container: Option<&ContainerInspectResponse>) -> bool {
     existing_container
         .and_then(|existing_container| existing_container.state.as_ref())
         .and_then(|state| state.running)
         .is_some_and(|running| running)
 }
 
-pub fn generate_env(services: &Services, context: &Context) -> Result<()> {
+fn generate_env(services: &Services, context: &Context) -> Result<()> {
     let existing_env = get_existing_env();
+    let is_generated_first_time = existing_env.is_none();
+    let existing_env = existing_env.unwrap_or_default();
+
     let services_env_vars = services.env_vars();
     let mut own_env_vars_names = HashSet::new();
 
@@ -111,19 +187,23 @@ pub fn generate_env(services: &Services, context: &Context) -> Result<()> {
 
     generate_env_file(&services_env_vars, &own_env_vars)?;
 
+    if is_generated_first_time {
+        presentation::print_env_file_generated();
+    }
+
     Ok(())
 }
 
-pub fn get_existing_env() -> BTreeMap<String, String> {
+fn get_existing_env() -> Option<BTreeMap<String, String>> {
     let mut existing_env = BTreeMap::new();
     let env_file_path = Path::new(ENV_FILE_NAME);
 
     if !env_file_path.exists() {
-        return existing_env;
+        return None;
     }
 
     let Ok(iter) = dotenvy::from_path_iter(env_file_path) else {
-        return existing_env;
+        return None;
     };
 
     for item in iter {
@@ -134,10 +214,10 @@ pub fn get_existing_env() -> BTreeMap<String, String> {
         existing_env.insert(key, value);
     }
 
-    existing_env
+    Some(existing_env)
 }
 
-pub fn generate_env_file(
+fn generate_env_file(
     services_env_vars: &[(String, String)],
     own_env_vars: &[(String, String)],
 ) -> Result<()> {
@@ -157,7 +237,7 @@ pub fn generate_env_file(
     Ok(())
 }
 
-pub async fn deploy_dependencies(
+async fn deploy_dependencies(
     services: &Services,
     context: &Context,
     docker: &Docker,
@@ -231,7 +311,7 @@ pub async fn deploy_dependencies(
     Ok(())
 }
 
-pub fn should_recreate_dependency_container(
+fn should_recreate_dependency_container(
     image_info: &ImageInspect,
     container_info: Option<&ContainerInspectResponse>,
 ) -> bool {

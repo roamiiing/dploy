@@ -19,56 +19,52 @@ pub fn print_config_not_found_error() {
     eprintln!("or specify the path to the config file with the --config flag.\n");
 }
 
-#[inline]
-pub fn print_dependency_pulling(name: &str) {
-    println!("[{}] Pulling", style(name).cyan());
+macro_rules! generate_println {
+    ($($fn_name:ident($message:expr)),+ $(,)? ) => {
+        $(
+            #[inline]
+            pub fn $fn_name() {
+                println!("{}", $message);
+            }
+        )+
+    };
 }
 
-#[inline]
-pub fn print_dependency_creating(name: &str) {
-    println!("[{}] Creating", style(name).cyan());
+macro_rules! generate_println_with_label {
+    ($($fn_name:ident($message:expr)),+ $(,)? ) => {
+        $(
+            #[inline]
+            pub fn $fn_name(label: &str) {
+                println!("[{}] {}", style(label).cyan(), $message);
+            }
+        )+
+    };
 }
 
-#[inline]
-pub fn print_dependency_starting(name: &str) {
-    println!("[{}] Starting", style(name).cyan());
+generate_println! {
+    print_dependencies_starting(style("Starting dependencies").cyan()),
+    print_dependencies_stopping(style("Stopping dependencies").cyan()),
+    print_env_file_generating(style("Generating env file").cyan()),
+    print_env_file_loaded(style("Loaded env file").green()),
+    print_env_file_failed_to_load(style("Failed to load env file").yellow()),
+    print_env_file_generated(style(concat!(
+        ".env file was generated. Please make sure to ",
+        "fill in your custom environment variables.",
+    )).yellow()),
 }
 
-#[inline]
-pub fn print_dependency_success(name: &str) {
-    println!("[{}] {}\n", style(name).cyan(), style("Success").green());
-}
-
-#[inline]
-pub fn print_starting_dependencies() {
-    println!("{}", style("Starting dependencies").cyan());
-}
-
-#[inline]
-pub fn print_generating_env_file() {
-    println!("{}", style("Generating env file").cyan());
-}
-
-#[inline]
-pub fn print_stopping_dependencies() {
-    println!("{}", style("Stopping dependencies").cyan());
-}
-
-#[inline]
-pub fn print_dependency_stopping(name: &str) {
-    println!("[{}] Stopping", style(name).cyan());
-}
-
-#[inline]
-pub fn print_dependency_stopped(name: &str) {
-    println!("[{}] {}\n", style(name).cyan(), style("Stopped").green());
-}
-
-#[inline]
-pub fn print_dependency_already_stopped(name: &str) {
-    println!(
-        "[{}] {}\n",
-        style(name).cyan(),
-        style("Already stopped").green(),
-    );
+generate_println_with_label! {
+    print_dependency_stopping(style("Stopping").cyan()),
+    print_dependency_stopped(style("Stopped").green()),
+    print_dependency_already_stopped(style("Already stopped").green()),
+    print_dependency_success(style("Success").green()),
+    print_dependency_starting(style("Starting").cyan()),
+    print_dependency_creating(style("Creating").cyan()),
+    print_dependency_pulling(style("Pulling").cyan()),
+    print_image_building(style("Building image").cyan()),
+    print_image_built(style("Image built").green()),
+    print_app_container_creating(style("Creating container").green()),
+    print_app_container_removing(style("Removing container").cyan()),
+    print_app_container_starting(style("Starting container").cyan()),
+    print_app_container_success(style("Success").green()),
 }

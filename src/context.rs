@@ -60,7 +60,7 @@ impl Context {
     pub fn should_generate_env_file(&self) -> bool {
         use Command::*;
 
-        matches!(self.args.command(), Dev { .. })
+        matches!(self.args.command(), Dev { .. } | Run { .. })
     }
 
     pub fn host_of(&self, service_kind: ServiceKind) -> String {

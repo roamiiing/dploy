@@ -7,6 +7,7 @@ use bollard::Docker;
 use clap::Parser;
 use deploy::{deploy, stop};
 
+mod build;
 mod cli;
 mod config;
 mod context;
@@ -14,6 +15,8 @@ mod deploy;
 mod presentation;
 mod services;
 mod utils;
+
+const ENV_FILE_NAME: &str = ".env";
 
 #[tokio::main]
 async fn main() -> Result<()> {

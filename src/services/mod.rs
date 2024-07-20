@@ -76,6 +76,10 @@ impl Services {
         Self { app, postgres }
     }
 
+    pub fn app(&self) -> Option<&app::AppService> {
+        self.app.as_ref()
+    }
+
     pub fn to_container_configs(&self, context: &Context) -> Result<Vec<ContainerConfig>> {
         let mut configs = vec![];
 
