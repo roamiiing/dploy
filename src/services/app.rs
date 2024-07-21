@@ -53,7 +53,6 @@ impl AppService {
     pub fn to_image_build_config(&self) -> image::BuildImageOptions<String> {
         let config = image::BuildImageOptions {
             t: self.image_name.clone(),
-            session: Some(self.image_name.to_owned()),
             ..Default::default()
         };
 

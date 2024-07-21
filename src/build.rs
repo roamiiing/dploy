@@ -25,7 +25,7 @@ pub async fn build_app_service_image(app_service: &AppService, docker: &Docker) 
         // TODO: log info from build image
         match info? {
             bollard::models::BuildInfo {
-                aux: Some(bollard::models::BuildInfoAux::Default(image_id_inner)),
+                aux: Some(image_id_inner),
                 ..
             } => {
                 image_id = image_id_inner.id;
