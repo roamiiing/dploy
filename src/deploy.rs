@@ -52,6 +52,10 @@ pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
     presentation::print_dependencies_stopping();
     stop_dependencies(&services, context, docker).await?;
 
+    if let Some(service) = services.app() {
+        stop_app_service(service, docker).await?;
+    }
+
     Ok(())
 }
 
@@ -102,6 +106,8 @@ async fn stop_app_service(app_service: &AppService, docker: &Docker) -> Result<(
     let container_config = app_service.to_container_config();
     let container_name = container_config.container_name();
 
+    presentation::print_app_container_removing(container_name);
+
     let existing_container = match docker.inspect_container(container_name, None).await {
         Ok(container) => Some(container),
         Err(bollard::errors::Error::DockerResponseServerError {
@@ -112,6 +118,9 @@ async fn stop_app_service(app_service: &AppService, docker: &Docker) -> Result<(
 
     if should_stop_container(existing_container.as_ref()) {
         docker.stop_container(container_name, None).await?;
+        presentation::print_app_container_stopped(container_name);
+    } else {
+        presentation::print_app_container_already_stopped(container_name);
     }
 
     Ok(())

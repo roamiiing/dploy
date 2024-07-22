@@ -2,9 +2,6 @@ name: Release
 
 on:
   push:
-    # tags:
-    #   - "[0-9]+.[0-9]+"
-    #   - "[0-9]+.[0-9]+.[0-9]+"
     branches:
       - master
 
@@ -12,30 +9,17 @@ jobs:
   build:
     name: Build
     env:
-      # For some builds, we use cross to test on 32-bit and big-endian
-      # systems.
-      CARGO: cargo
-      # When CARGO is set to CROSS, this is set to `--target matrix.target`.
-      TARGET_FLAGS:
-      # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
-      TARGET_DIR: ./target
-      # Emit backtraces on panics.
       RUST_BACKTRACE: 1
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # don't fail other jobs if one fails
+      fail-fast: false
       matrix:
-        build: [x86_64-linux, x86_64-macos, x86_64-windows] #, x86_64-win-gnu, win32-msvc
+        build: [x86_64-linux, x86_64-macos, x86_64-windows, aarch64-macos]
         include:
           - build: x86_64-linux
             os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-gnu
-          # - build: aarch64-linux
-          #   os: ubuntu-latest
-          #   rust: stable
-          #   target: aarch64-unknown-linux-gnu
-          #   cross: true
           - build: x86_64-macos
             os: macos-latest
             rust: stable
@@ -59,13 +43,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
 
-      - name: Show command used for Cargo
-        run: |
-          echo "cargo command is: ${{ env.CARGO }}"
-          echo "target flag is: ${{ env.TARGET_FLAGS }}"
-
       - name: Build release binary
-        run: ${{ env.CARGO }} build --release --locked --target ${{ matrix.target }}
+        run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Build archive
         shell: bash

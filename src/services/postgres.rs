@@ -12,6 +12,7 @@ const DEFAULT_USER: &str = "admin";
 const DEFAULT_PASSWORD: &str = "admin";
 
 const IMAGE_NAME: &str = "postgres";
+const DATA_PATH: &str = "/var/lib/postgresql/data";
 
 pub struct PostgresService {
     expose_url_to_env: Option<String>,
@@ -89,6 +90,25 @@ impl ToContainerConfig for PostgresService {
             ..Default::default()
         };
 
+        let mut host_config = models::HostConfig::default();
+
+        let volume_path = context
+            .volume_path_of(ServiceKind::Postgres, DATA_PATH)
+            .to_string_lossy()
+            .to_string();
+
+        host_config.mounts = Some(vec![models::Mount {
+            target: Some(DATA_PATH.to_owned()),
+            source: Some(volume_path),
+            typ: Some(models::MountTypeEnum::BIND),
+            bind_options: Some(models::MountBindOptions {
+                // TODO: check if this is the best way to do this
+                create_mountpoint: Some(true),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }]);
+
         if context.should_expose_to_host() {
             let port_binding = models::PortBinding {
                 host_ip: Some("0.0.0.0".to_owned()),
@@ -98,11 +118,10 @@ impl ToContainerConfig for PostgresService {
             let bindings_map =
                 HashMap::from([(format!("{}/tcp", DEFAULT_PORT), Some(vec![port_binding]))]);
 
-            config.host_config = Some(models::HostConfig {
-                port_bindings: Some(bindings_map),
-                ..Default::default()
-            })
+            host_config.port_bindings = Some(bindings_map);
         }
+
+        config.host_config = Some(host_config);
 
         Ok(ContainerConfig::new(name, IMAGE_NAME.to_owned(), config))
     }

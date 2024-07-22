@@ -1,3 +1,8 @@
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
+
 use crate::{
     cli::{Args, Command},
     config::AppConfig,
@@ -37,6 +42,25 @@ impl Context {
         // to deploy different versions of the same service
         // simultaneously
         format!("{prefix}_{suffix}_default")
+    }
+
+    pub fn volume_path_of(&self, service_kind: ServiceKind, path: impl AsRef<Path>) -> PathBuf {
+        let volume_path = self
+            .get_dploy_dir()
+            .join("volumes")
+            .join(self.container_name_of(service_kind))
+            .join(
+                path.as_ref()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+                    .replace('/', "$__$"),
+            );
+
+        // if !volume_path.exists() {
+        //     std::fs::create_dir_all(&volume_path).ok();
+        // }
+
+        volume_path
     }
 
     pub fn should_expose_to_host(&self) -> bool {
@@ -79,5 +103,11 @@ impl Context {
             Dev { .. } => free_port(),
             _ => inner_port,
         }
+    }
+
+    fn get_dploy_dir(&self) -> PathBuf {
+        env::home_dir()
+            .expect("Failed to get home directory")
+            .join(".dploy")
     }
 }

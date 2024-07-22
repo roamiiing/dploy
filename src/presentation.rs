@@ -67,4 +67,6 @@ generate_println_with_label! {
     print_app_container_removing(style("Removing container").cyan()),
     print_app_container_starting(style("Starting container").cyan()),
     print_app_container_success(style("Success").green()),
+    print_app_container_already_stopped(style("Already stopped").green()),
+    print_app_container_stopped(style("Stopped").green()),
 }
