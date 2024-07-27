@@ -5,7 +5,7 @@ use bollard::{container, models};
 
 use crate::context::Context;
 
-use super::{ContainerConfig, EnvVars, ServiceKind, ToContainerConfig};
+use super::{ConnectionInfo, ContainerConfig, EnvVars, ServiceKind, ToContainerConfig};
 
 const DEFAULT_PORT: u16 = 5432;
 const DEFAULT_USER: &str = "admin";
@@ -14,6 +14,8 @@ const DEFAULT_PASSWORD: &str = "admin";
 const IMAGE_NAME: &str = "postgres";
 const DATA_PATH: &str = "/var/lib/postgresql/data";
 
+const SERVICE_KIND: ServiceKind = ServiceKind::Postgres;
+
 pub struct PostgresService {
     expose_url_to_env: Option<String>,
 
@@ -21,6 +23,7 @@ pub struct PostgresService {
     database_user: String,
     database_password: String,
 
+    /// host and port inside the dploy network
     external_host: String,
     external_port: u16,
 }
@@ -39,7 +42,7 @@ impl PostgresService {
             database_user: DEFAULT_USER.to_owned(),
             database_password: DEFAULT_PASSWORD.to_owned(),
 
-            external_host: context.host_of(ServiceKind::Postgres),
+            external_host: context.host_of(SERVICE_KIND),
             external_port: port,
         })
     }
@@ -72,9 +75,15 @@ impl EnvVars for PostgresService {
     }
 }
 
+impl ConnectionInfo for PostgresService {
+    fn connection_info(&self) -> Vec<String> {
+        vec![self.url()]
+    }
+}
+
 impl ToContainerConfig for PostgresService {
     fn to_container_config(&self, context: &Context) -> Result<ContainerConfig> {
-        let name = context.container_name_of(ServiceKind::Postgres);
+        let name = context.container_name_of(SERVICE_KIND);
 
         let mut config = container::Config {
             image: Some(IMAGE_NAME.to_owned()),
@@ -93,7 +102,7 @@ impl ToContainerConfig for PostgresService {
         let mut host_config = models::HostConfig::default();
 
         let volume_path = context
-            .volume_path_of(ServiceKind::Postgres, DATA_PATH)
+            .volume_path_of(SERVICE_KIND, DATA_PATH)
             .to_string_lossy()
             .to_string();
 

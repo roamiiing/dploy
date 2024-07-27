@@ -56,23 +56,25 @@ impl Context {
                     .replace('/', "$__$"),
             );
 
-        // if !volume_path.exists() {
-        //     std::fs::create_dir_all(&volume_path).ok();
-        // }
-
         volume_path
     }
 
     pub fn should_expose_to_host(&self) -> bool {
         use Command::*;
 
-        matches!(self.args.command(), Dev { .. })
+        matches!(self.args.command(), Dev { .. } | Run { .. })
     }
 
     pub fn should_expose_app_service_to_host(&self) -> bool {
         use Command::*;
 
         matches!(self.args.command(), Run { .. })
+    }
+
+    pub fn should_print_connection_info(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Dev { .. } | Run { .. })
     }
 
     pub fn should_create_app_service(&self) -> bool {
@@ -91,7 +93,7 @@ impl Context {
         use Command::*;
 
         match self.args.command() {
-            Deploy | Run { .. } => self.container_name_of(service_kind),
+            Deploy => self.container_name_of(service_kind),
             _ => "127.0.0.1".to_owned(),
         }
     }
@@ -100,7 +102,7 @@ impl Context {
         use Command::*;
 
         match self.args.command() {
-            Dev { .. } => free_port(),
+            Dev { .. } | Run { .. } => free_port(),
             _ => inner_port,
         }
     }

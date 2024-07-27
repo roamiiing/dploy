@@ -1,5 +1,7 @@
 use console::style;
 
+use crate::services::ServiceKind;
+
 #[inline]
 pub fn print_cli_info() {
     println!(
@@ -17,6 +19,19 @@ pub fn print_config_not_found_error() {
         style("config.toml").cyan()
     );
     eprintln!("or specify the path to the config file with the --config flag.\n");
+}
+
+#[inline]
+pub fn print_connection_info(connection_info: &[(ServiceKind, String)]) {
+    if connection_info.is_empty() {
+        return;
+    }
+
+    println!("{}", style("\nConnection info:\n").cyan());
+
+    for (service_kind, connection) in connection_info {
+        println!("{}: {}", service_kind.to_string(), style(connection).cyan());
+    }
 }
 
 macro_rules! generate_println {

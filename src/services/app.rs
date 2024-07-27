@@ -8,7 +8,7 @@ use crate::{
     utils::{network::free_port, string::escape_sh},
 };
 
-use super::{ContainerConfig, EnvVars, ServiceKind, ToContainerConfig};
+use super::{ConnectionInfo, ContainerConfig, EnvVars, ServiceKind, ToContainerConfig};
 
 #[derive(Debug)]
 pub struct AppService {
@@ -23,7 +23,7 @@ pub struct AppService {
 impl AppService {
     pub fn from_context(context: &Context, env_vars: Vec<(String, String)>) -> Self {
         let ports_mapping = context
-            .should_expose_to_host()
+            .should_expose_app_service_to_host()
             .then(|| {
                 context
                     .app_config()
@@ -86,6 +86,11 @@ impl ToContainerConfig for AppService {
                             .to_string_lossy()
                             .to_string(),
                     ),
+                    typ: Some(models::MountTypeEnum::BIND),
+                    bind_options: Some(models::MountBindOptions {
+                        create_mountpoint: Some(true),
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .collect(),
@@ -136,5 +141,14 @@ impl ToContainerConfig for AppService {
 impl EnvVars for AppService {
     fn env_vars(&self) -> Vec<(String, String)> {
         self.env_vars.clone()
+    }
+}
+
+impl ConnectionInfo for AppService {
+    fn connection_info(&self) -> Vec<String> {
+        self.ports_mapping
+            .iter()
+            .map(|(host_port, container_port)| format!("127.0.0.1:{host_port} >> {container_port}"))
+            .collect()
     }
 }

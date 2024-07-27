@@ -13,6 +13,16 @@ pub enum ServiceKind {
     Keydb,
 }
 
+impl ServiceKind {
+    pub fn to_string(&self) -> &str {
+        match self {
+            ServiceKind::App => "app",
+            ServiceKind::Postgres => "postgres",
+            ServiceKind::Keydb => "keydb",
+        }
+    }
+}
+
 /// Env vars to expose to app service
 pub trait EnvVars {
     fn env_vars(&self) -> Vec<(String, String)>;
@@ -52,6 +62,10 @@ impl ContainerConfig {
 
 pub trait ToContainerConfig {
     fn to_container_config(&self, context: &Context) -> Result<ContainerConfig>;
+}
+
+pub trait ConnectionInfo {
+    fn connection_info(&self) -> Vec<String>;
 }
 
 pub struct Services {
@@ -98,5 +112,28 @@ impl Services {
         }
 
         env_vars
+    }
+
+    pub fn connection_info(&self) -> Vec<(ServiceKind, String)> {
+        let mut infos = vec![];
+
+        if let Some(postgres) = &self.postgres {
+            infos.extend(
+                postgres
+                    .connection_info()
+                    .into_iter()
+                    .map(|s| (ServiceKind::Postgres, s)),
+            );
+        }
+
+        if let Some(app) = &self.app {
+            infos.extend(
+                app.connection_info()
+                    .into_iter()
+                    .map(|s| (ServiceKind::App, s)),
+            );
+        }
+
+        infos
     }
 }

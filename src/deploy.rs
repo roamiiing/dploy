@@ -43,6 +43,11 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
         deploy_app_service(service, context, docker).await?;
     }
 
+    if context.should_print_connection_info() {
+        let connection_info = services.connection_info();
+        presentation::print_connection_info(&connection_info);
+    }
+
     Ok(())
 }
 
@@ -151,6 +156,7 @@ async fn stop_dependencies(services: &Services, context: &Context, docker: &Dock
         presentation::print_dependency_stopping(container_name);
         if should_stop_container(existing_container.as_ref()) {
             docker.stop_container(container_name, None).await?;
+            docker.remove_container(container_name, None).await?;
             presentation::print_dependency_stopped(container_name);
         } else {
             presentation::print_dependency_already_stopped(container_name);
@@ -267,20 +273,21 @@ async fn deploy_dependencies(
         let config = config.config();
 
         presentation::print_dependency_pulling(container_name);
-        docker
-            .create_image(
-                Some(image::CreateImageOptions {
-                    from_image: image_name,
-                    tag: "latest",
-                    ..Default::default()
-                }),
-                None,
-                None,
-            )
-            .try_collect::<Vec<_>>()
-            .await?;
+        // docker
+        //     .create_image(
+        //         Some(image::CreateImageOptions {
+        //             from_image: image_name,
+        //             tag: "latest",
+        //             ..Default::default()
+        //         }),
+        //         None,
+        //         None,
+        //     )
+        //     .try_collect::<Vec<_>>()
+        //     .await?;
 
         let image_info = docker
+            // TODO: allow users to customize version
             .inspect_image(format!("{}:latest", image_name).as_str())
             .await?;
         let existing_container = match docker.inspect_container(container_name, None).await {
