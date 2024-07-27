@@ -13,6 +13,11 @@ pub struct AppConfig {
     #[serde(default)]
     env: Vec<String>,
 
+    /// Paths to persistent volumes inside the container
+    /// These volumes will be automatically mounted
+    #[serde(default)]
+    volumes: Vec<String>,
+
     /// Ports exposed by the application service
     #[serde(default)]
     ports: Vec<u16>,
@@ -37,6 +42,10 @@ impl AppConfig {
 
     pub fn env(&self) -> &[String] {
         &self.env
+    }
+
+    pub fn volumes(&self) -> &[String] {
+        &self.volumes
     }
 
     pub fn ports(&self) -> &[u16] {

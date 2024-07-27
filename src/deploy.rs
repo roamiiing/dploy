@@ -17,7 +17,7 @@ use crate::{
     build::build_app_service_image,
     context::Context,
     presentation,
-    services::{app::AppService, Services},
+    services::{app::AppService, Services, ToContainerConfig},
 };
 
 const ENV_FILE_NAME: &str = ".env";
@@ -40,7 +40,7 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
     deploy_dependencies(&services, context, docker).await?;
 
     if let Some(service) = services.app() {
-        deploy_app_service(service, docker).await?;
+        deploy_app_service(service, context, docker).await?;
     }
 
     Ok(())
@@ -53,14 +53,18 @@ pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
     stop_dependencies(&services, context, docker).await?;
 
     if let Some(service) = services.app() {
-        stop_app_service(service, docker).await?;
+        stop_app_service(service, context, docker).await?;
     }
 
     Ok(())
 }
 
-async fn deploy_app_service(app_service: &AppService, docker: &Docker) -> Result<()> {
-    let container_config = app_service.to_container_config();
+async fn deploy_app_service(
+    app_service: &AppService,
+    context: &Context,
+    docker: &Docker,
+) -> Result<()> {
+    let container_config = app_service.to_container_config(context)?;
     let container_name = container_config.container_name();
 
     presentation::print_image_building(container_name);
@@ -102,8 +106,12 @@ async fn deploy_app_service(app_service: &AppService, docker: &Docker) -> Result
     Ok(())
 }
 
-async fn stop_app_service(app_service: &AppService, docker: &Docker) -> Result<()> {
-    let container_config = app_service.to_container_config();
+async fn stop_app_service(
+    app_service: &AppService,
+    context: &Context,
+    docker: &Docker,
+) -> Result<()> {
+    let container_config = app_service.to_container_config(context)?;
     let container_name = container_config.container_name();
 
     presentation::print_app_container_removing(container_name);
