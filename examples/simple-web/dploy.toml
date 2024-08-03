@@ -2,5 +2,7 @@ name = "simple-web"
 
 ports = [3000]
 
+volumes = ["/app/data"]
+
 [postgres]
 expose_url_to_env = "POSTGRES_URL"

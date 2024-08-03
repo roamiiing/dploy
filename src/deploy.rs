@@ -58,12 +58,12 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
 pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
     let services = Services::from_context(context);
 
-    presentation::print_dependencies_stopping();
-    stop_dependencies(&services, context, docker).await?;
-
     if let Some(service) = services.app() {
         stop_app_service(service, context, docker).await?;
     }
+
+    presentation::print_dependencies_stopping();
+    stop_dependencies(&services, context, docker).await?;
 
     Ok(())
 }
@@ -160,7 +160,6 @@ async fn stop_dependencies(services: &Services, context: &Context, docker: &Dock
         presentation::print_dependency_stopping(container_name);
         if should_stop_container(existing_container.as_ref()) {
             docker.stop_container(container_name, None).await?;
-            docker.remove_container(container_name, None).await?;
             presentation::print_dependency_stopped(container_name);
         } else {
             presentation::print_dependency_already_stopped(container_name);
