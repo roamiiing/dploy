@@ -2,20 +2,20 @@ use std::{net::TcpListener, path::Path, time::Duration};
 
 use anyhow::{bail, Context, Result};
 use bollard::{Docker, API_DEFAULT_VERSION};
-use openssh::{ForwardType, KnownHosts, SessionBuilder};
+use openssh::{ForwardType, KnownHosts, Session, SessionBuilder};
 
 use crate::{context, presentation};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 
-pub async fn get_remote_docker_client(context: &context::Context) -> Result<Docker> {
+pub async fn get_remote_docker_client(context: &context::Context) -> Result<(Docker, Session)> {
     let Some(credentials) = context.ssh_credentials() else {
         bail!("No SSH credentials provided")
     };
 
-    let mut session = SessionBuilder::default();
+    let mut builder = SessionBuilder::default();
 
-    session
+    builder
         .user(credentials.username().to_owned())
         .port(credentials.port())
         .known_hosts_check(KnownHosts::Accept)
@@ -23,7 +23,7 @@ pub async fn get_remote_docker_client(context: &context::Context) -> Result<Dock
         .connect_timeout(DEFAULT_TIMEOUT);
 
     if let Some(keyfile) = credentials.keyfile() {
-        session.keyfile(keyfile);
+        builder.keyfile(keyfile);
     }
 
     let local_addr = {
@@ -32,14 +32,16 @@ pub async fn get_remote_docker_client(context: &context::Context) -> Result<Dock
     };
 
     presentation::print_remote_host_connecting(credentials.host());
-    let connection = session
-        .connect_mux(credentials.host())
+    let temp_dir = builder
+        .launch_master(credentials.host())
         .await
-        .context("Could not connect to remote host")?;
+        .context("Could not launch ssh")?;
+
+    let session = Session::new_process_mux(temp_dir);
     presentation::print_remote_host_success(credentials.host());
 
     let socket_path = Path::new("/var/run/docker.sock");
-    connection
+    session
         .request_port_forward(ForwardType::Local, local_addr, socket_path)
         .await
         .context("Could not request port forward")?;
@@ -52,5 +54,5 @@ pub async fn get_remote_docker_client(context: &context::Context) -> Result<Dock
         .await
         .context("Could not get docker version")?;
 
-    Ok(docker)
+    Ok((docker, session))
 }

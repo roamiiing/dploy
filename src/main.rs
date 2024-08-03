@@ -38,10 +38,11 @@ async fn run_cli() -> Result<()> {
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
     let context = context::Context::new(args, app_config);
-    let docker = if matches!(context.args().command(), Command::Deploy { .. }) {
-        get_remote_docker_client(&context).await?
+    let (docker, session) = if matches!(context.args().command(), Command::Deploy { .. }) {
+        let (docker, session) = get_remote_docker_client(&context).await?;
+        (docker, Some(session))
     } else {
-        Docker::connect_with_defaults()?
+        (Docker::connect_with_defaults()?, None)
     };
 
     docker.ping().await.context("Could not ping docker")?;
@@ -50,6 +51,10 @@ async fn run_cli() -> Result<()> {
         stop(&context, &docker).await?;
     } else {
         deploy(&context, &docker).await?;
+    }
+
+    if let Some(session) = session {
+        session.close().await?;
     }
 
     Ok(())
