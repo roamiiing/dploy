@@ -2,24 +2,27 @@
 
 use std::fs;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bollard::Docker;
 use clap::Parser;
+use cli::Command;
 use deploy::{deploy, stop};
+use ssh::get_remote_docker_client;
 
 mod build;
 mod cli;
 mod config;
 mod context;
 mod deploy;
+mod network;
 mod presentation;
 mod services;
+mod ssh;
 mod utils;
 
 const ENV_FILE_NAME: &str = ".env";
 
-#[tokio::main]
-async fn main() -> Result<()> {
+async fn run_cli() -> Result<()> {
     let args = cli::Args::try_parse()?;
 
     presentation::print_cli_info();
@@ -35,9 +38,13 @@ async fn main() -> Result<()> {
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
     let context = context::Context::new(args, app_config);
-    let docker = Docker::connect_with_defaults()?;
+    let docker = if matches!(context.args().command(), Command::Deploy { .. }) {
+        get_remote_docker_client(&context).await?
+    } else {
+        Docker::connect_with_defaults()?
+    };
 
-    docker.ping().await?;
+    docker.ping().await.context("Could not ping docker")?;
 
     if context.args().command().stop() {
         stop(&context, &docker).await?;
@@ -46,4 +53,15 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    match run_cli().await {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(1);
+        }
+    }
 }

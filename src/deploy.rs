@@ -16,6 +16,7 @@ use std::{
 use crate::{
     build::build_app_service_image,
     context::Context,
+    network::create_dploy_network,
     presentation,
     services::{app::AppService, Services, ToContainerConfig},
 };
@@ -35,6 +36,9 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
         presentation::print_env_file_generating();
         generate_env(&services, context)?;
     }
+
+    presentation::print_network_creating();
+    create_dploy_network(docker).await?;
 
     presentation::print_dependencies_starting();
     deploy_dependencies(&services, context, docker).await?;
@@ -273,18 +277,18 @@ async fn deploy_dependencies(
         let config = config.config();
 
         presentation::print_dependency_pulling(container_name);
-        // docker
-        //     .create_image(
-        //         Some(image::CreateImageOptions {
-        //             from_image: image_name,
-        //             tag: "latest",
-        //             ..Default::default()
-        //         }),
-        //         None,
-        //         None,
-        //     )
-        //     .try_collect::<Vec<_>>()
-        //     .await?;
+        docker
+            .create_image(
+                Some(image::CreateImageOptions {
+                    from_image: image_name,
+                    tag: "latest",
+                    ..Default::default()
+                }),
+                None,
+                None,
+            )
+            .try_collect::<Vec<_>>()
+            .await?;
 
         let image_info = docker
             // TODO: allow users to customize version

@@ -24,17 +24,39 @@ impl Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Deploy the application to a remote server
-    Deploy,
+    /// Deploy the application with all its dependencies to a remote server
+    Deploy {
+        /// Host of the remote server
+        #[clap(index = 1, default_value = "127.0.0.1")]
+        host: String,
 
-    /// Run the application locally
-    Run {
+        /// Port of the remote server
+        #[clap(short, long, default_value_t = 22)]
+        port: u16,
+
+        /// Username of the remote server
+        #[clap(short, long, default_value = "root")]
+        username: String,
+
+        /// Path to the private key file
+        #[clap(short, long)]
+        keyfile: Option<String>,
+
+        /// Stop the application
         #[clap(short, long, default_value_t = false)]
         stop: bool,
     },
 
-    /// Run only the dependencies of the application
+    /// Run the application with all its dependencies locally
+    Run {
+        /// Stop the application
+        #[clap(short, long, default_value_t = false)]
+        stop: bool,
+    },
+
+    /// Run only the dependencies of the application locally
     Dev {
+        /// Stop the application
         #[clap(short, long, default_value_t = false)]
         stop: bool,
     },
@@ -45,8 +67,7 @@ impl Command {
         use Command::*;
 
         match self {
-            Run { stop } | Dev { stop } => *stop,
-            _ => false,
+            Run { stop, .. } | Dev { stop, .. } | Deploy { stop, .. } => *stop,
         }
     }
 }

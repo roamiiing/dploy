@@ -12,6 +12,7 @@ dotenvy = "0.15.7"
 flate2 = "1.0.30"
 futures-util = "0.3.30"
 ignore = "0.4.22"
+openssh = { version = "0.10.4", features = ["native-mux"] }
 serde = { version = "1.0.203", features = ["derive"] }
 tar = "0.4.41"
 tempfile = "3.10.1"

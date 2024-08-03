@@ -1,0 +1,6 @@
+name = "simple-web"
+
+ports = [3000]
+
+[postgres]
+expose_url_to_env = "POSTGRES_URL"

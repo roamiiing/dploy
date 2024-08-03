@@ -1,14 +1,17 @@
-use std::env;
+use std::{collections::HashMap, env};
 
 use anyhow::Result;
 use bollard::{container, image, models};
 
 use crate::{
     context::Context,
+    network::DPLOY_NETWORK,
     utils::{network::free_port, string::escape_sh},
 };
 
 use super::{ConnectionInfo, ContainerConfig, EnvVars, ServiceKind, ToContainerConfig};
+
+const SERVICE_KIND: ServiceKind = ServiceKind::App;
 
 #[derive(Debug)]
 pub struct AppService {
@@ -44,8 +47,8 @@ impl AppService {
 
         Self {
             app_name: context.app_config().name().to_owned(),
-            image_name: context.container_name_of(ServiceKind::App),
-            container_name: context.container_name_of(ServiceKind::App),
+            image_name: context.container_name_of(SERVICE_KIND),
+            container_name: context.container_name_of(SERVICE_KIND),
             env_vars,
             ports_mapping,
             volumes: context
@@ -78,21 +81,7 @@ impl ToContainerConfig for AppService {
         host_config.mounts = Some(
             self.volumes
                 .iter()
-                .map(|volume| models::Mount {
-                    target: Some(volume.to_owned()),
-                    source: Some(
-                        context
-                            .volume_path_of(ServiceKind::App, volume)
-                            .to_string_lossy()
-                            .to_string(),
-                    ),
-                    typ: Some(models::MountTypeEnum::BIND),
-                    bind_options: Some(models::MountBindOptions {
-                        create_mountpoint: Some(true),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                })
+                .map(|volume| context.mount(SERVICE_KIND, volume))
                 .collect(),
         );
 
@@ -126,6 +115,13 @@ impl ToContainerConfig for AppService {
             ),
 
             host_config: Some(host_config),
+
+            networking_config: Some(container::NetworkingConfig {
+                endpoints_config: HashMap::from([(
+                    DPLOY_NETWORK.to_owned(),
+                    models::EndpointSettings::default(),
+                )]),
+            }),
 
             ..Default::default()
         };

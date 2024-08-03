@@ -2,6 +2,7 @@ use std::io::{self, Read, Seek, Write};
 
 use anyhow::Result;
 use bollard::Docker;
+use console::style;
 use futures_util::StreamExt;
 
 use crate::{services::app::AppService, utils::file::Empty};
@@ -30,9 +31,19 @@ pub async fn build_app_service_image(app_service: &AppService, docker: &Docker) 
             } => {
                 image_id = image_id_inner.id;
             }
-            log => {
-                println!("{log:?}");
+            bollard::models::BuildInfo {
+                stream: Some(stream),
+                ..
+            } if !stream.trim().is_empty() => {
+                let formatted_stream = if stream.ends_with('\n') {
+                    stream.clone()
+                } else {
+                    format!("{}\n", stream)
+                };
+
+                print!("{}", style(formatted_stream).dim());
             }
+            _ => {}
         }
     }
 

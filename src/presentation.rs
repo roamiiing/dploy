@@ -66,6 +66,7 @@ generate_println! {
         ".env file was generated. Please make sure to ",
         "fill in your custom environment variables.",
     )).yellow()),
+    print_network_creating(style("Creating network").cyan()),
 }
 
 generate_println_with_label! {
@@ -84,4 +85,6 @@ generate_println_with_label! {
     print_app_container_success(style("Success").green()),
     print_app_container_already_stopped(style("Already stopped").green()),
     print_app_container_stopped(style("Stopped").green()),
+    print_remote_host_connecting(style("Connecting").cyan()),
+    print_remote_host_success(style("Success").green()),
 }
