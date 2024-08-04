@@ -13,10 +13,10 @@ hero:
       link: https://github.com/roamiiing/dploy
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Versatile Deployment Modes
+    details: Easily switch between dev, run, and deploy modes for seamless development and deployment
+  - title: Automated Environment Setup
+    details: Automatically generate a `.env` file with essential credentials and environment variables
+  - title: Easy Configuration Management
+    details: Customize your project's setup using a simple `dploy.toml` file
 ---

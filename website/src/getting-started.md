@@ -1,11 +1,11 @@
 ---
 ---
 
-# Getting started
+# Getting Started with dploy
 
 ## Installation
 
-To install dploy, simply run:
+To install dploy, run the following command:
 
 ```bash
 curl -o- https://dploy.roamiiing.ru/install.sh | sh
@@ -13,14 +13,17 @@ curl -o- https://dploy.roamiiing.ru/install.sh | sh
 
 ## Configuration
 
-To configure dploy, you can use the `dploy.toml` file in your project's root directory.
+You can configure dploy using the `dploy.toml` file located in the root directory of your project.
 
 ```toml
 # dploy.toml
-name = "your-projects-name"
+name = "your-project-name"
 
+# Ports to be exposed in `dev` and `run` modes
 ports = [3000, 3001]
 
+# Volumes to be mounted inside `/var/lib/dploy/volumes`
+# Use this for persistent volumes
 volumes = [
   "/app/data",
 ]
@@ -35,34 +38,44 @@ expose_url_to_env = "APP_POSTGRES_URL"
 
 ## Usage
 
-There are three modes in dploy: `dev`, `run` and `deploy`.
+dploy supports three modes: `dev`, `run`, and `deploy`.
 
-### `dev`
+### `dev` Mode
 
-In `dev` mode, dploy will start only dependencies (like postgres) on your local machine. It will also generate a `.env` file with dependencies credentials (like URL for postgres) for you, which you will have to load on your own.
+In `dev` mode, dploy starts only the necessary dependencies (such as PostgreSQL) on your local machine. It also generates a `.env` file containing credentials for these dependencies (like the PostgreSQL URL), which you need to load manually.
 
-To stop services, simply run `dploy dev --stop`.
+To stop the services, run:
 
-### `run`
+```bash
+dploy dev --stop
+```
 
-In `run` mode, dploy will start both your application and dependencies on your local machine. It will also generate a `.env` file with dependencies credentials (like URL for postgres) for you, which you will have to load on your own.
+### `run` Mode
 
-To stop services, simply run `dploy run --stop`.
+In `run` mode, dploy starts both your application and its dependencies on your local machine. Similar to `dev` mode, it generates a `.env` file with the necessary credentials, which you need to load manually.
 
-### `deploy`
+To stop the services, run:
 
-In `deploy` mode, dploy will start both your application and dependencies on specified remote server.
+```bash
+dploy run --stop
+```
 
-In this mode you have to specify which host to deploy to:
+### `deploy` Mode
+
+In `deploy` mode, dploy starts both your application and its dependencies on a specified remote server. You must specify the host for deployment:
 
 ```bash
 dploy deploy <host> -p <port> -u <user> -k <path_to_keyfile>
 ```
 
-The flags are following:
+The flags are:
 
-- `-p` - port of SSH server. Defaults to 22.
-- `-u` - username of SSH server. Defaults to `root`.
-- `-k` - path to keyfile.
+- `-p`: SSH server port (default is 22).
+- `-u`: SSH server username (default is `root`).
+- `-k`: Path to the key file.
 
-To stop services, simply run `dploy deploy <host> --stop`.
+To stop the services, run:
+
+```bash
+dploy deploy <host> --stop
+```

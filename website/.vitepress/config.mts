@@ -20,6 +20,10 @@ export default defineConfig({
         text: "Getting started",
         link: "/getting-started",
       },
+      {
+        text: "Important considerations",
+        link: "/important-considerations",
+      },
     ],
 
     socialLinks: [
