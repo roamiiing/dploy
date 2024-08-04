@@ -101,6 +101,11 @@ impl ToContainerConfig for AppService {
                 .collect(),
         );
 
+        host_config.restart_policy = Some(models::RestartPolicy {
+            name: Some(models::RestartPolicyNameEnum::ALWAYS),
+            ..Default::default()
+        });
+
         let config = container::Config {
             image: Some(self.image_name.clone()),
             hostname: Some(self.container_name.clone()),

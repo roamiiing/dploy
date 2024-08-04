@@ -115,6 +115,11 @@ impl ToContainerConfig for PostgresService {
         host_config.mounts = Some(vec![context.mount(SERVICE_KIND, DATA_PATH)]);
         host_config.port_bindings = Some(self.binding.to_port_binding());
 
+        host_config.restart_policy = Some(models::RestartPolicy {
+            name: Some(models::RestartPolicyNameEnum::ALWAYS),
+            ..Default::default()
+        });
+
         config.host_config = Some(host_config);
 
         Ok(ContainerConfig::new(name, IMAGE_NAME.to_owned(), config))
