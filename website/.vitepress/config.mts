@@ -21,6 +21,10 @@ export default defineConfig({
         link: "/getting-started",
       },
       {
+        text: "Difference between modes",
+        link: "/difference-between-modes",
+      },
+      {
         text: "Important considerations",
         link: "/important-considerations",
       },
