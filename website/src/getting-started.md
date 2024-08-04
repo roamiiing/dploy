@@ -42,6 +42,10 @@ dploy supports three modes: `dev`, `run`, and `deploy`.
 
 ### `dev` Mode
 
+```bash
+dploy dev
+```
+
 In `dev` mode, dploy starts only the necessary dependencies (such as PostgreSQL) on your local machine. It also generates a `.env` file containing credentials for these dependencies (like the PostgreSQL URL), which you need to load manually.
 
 To stop the services, run:
@@ -51,6 +55,10 @@ dploy dev --stop
 ```
 
 ### `run` Mode
+
+```bash
+dploy run
+```
 
 In `run` mode, dploy starts both your application and its dependencies on your local machine. Similar to `dev` mode, it generates a `.env` file with the necessary credentials, which you need to load manually.
 

@@ -52,6 +52,12 @@ dploy dev --stop
 
 ## `run` Mode
 
+To activate `run` mode, run:
+
+```bash
+dploy run
+```
+
 In `run` mode, dploy starts both your application and its dependencies on your local machine. Like `dev` mode, it generates a `.env` file with the necessary credentials.
 
 Your application is built using the `Dockerfile` and then automatically started. In this mode, dploy handles the loading of the `.env` file and sets the variables inside the application container.
