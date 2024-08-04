@@ -1,7 +1,0 @@
-name = "example"
-
-env = ["SERVICE_BOT_TOKEN"]
-ports = [8000]
-
-[postgres]
-expose_url_to_env = "SERVICE_DATABASE_URL"
