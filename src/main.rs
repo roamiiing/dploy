@@ -58,6 +58,10 @@ async fn run_cli() -> Result<()> {
                 Some(cli::DevCommand::Stop) => {
                     commands::stop::stop(&context, &docker).await?;
                 }
+                Some(cli::DevCommand::Logs { tail, service, .. }) => {
+                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
+                        .await?;
+                }
             }
         }
 
@@ -71,8 +75,9 @@ async fn run_cli() -> Result<()> {
                 Some(cli::RunCommand::Stop) => {
                     commands::stop::stop(&context, &docker).await?;
                 }
-                Some(cli::RunCommand::Logs { tail, .. }) => {
-                    commands::logs::logs(&context, &docker, tail.clone()).await?;
+                Some(cli::RunCommand::Logs { tail, service, .. }) => {
+                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
+                        .await?;
                 }
             }
         }
@@ -87,8 +92,9 @@ async fn run_cli() -> Result<()> {
                 Some(cli::DeployCommand::Stop) => {
                     commands::stop::stop(&context, &docker).await?;
                 }
-                Some(cli::DeployCommand::Logs { tail, .. }) => {
-                    commands::logs::logs(&context, &docker, tail.clone()).await?;
+                Some(cli::DeployCommand::Logs { tail, service, .. }) => {
+                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
+                        .await?;
                 }
             }
 

@@ -35,8 +35,12 @@ pub fn print_connection_info(connection_info: &[(ServiceKind, String)]) {
 }
 
 #[inline]
-pub fn print_logs_count(count: u64, is_follow: bool) {
-    println!("\nShowing you {} last logs", style(count).cyan());
+pub fn print_logs_count(service_name: &str, count: u64, is_follow: bool) {
+    println!(
+        "\nShowing you {} last logs of {}",
+        style(count).cyan(),
+        style(service_name).cyan()
+    );
 
     if is_follow {
         println!(

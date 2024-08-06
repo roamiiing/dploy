@@ -2,33 +2,20 @@ use std::io::Write;
 
 use futures_util::TryStreamExt;
 
-use crate::{
-    context,
-    prelude::*,
-    presentation,
-    services::{self, ToContainerConfig},
-};
+use crate::{context, prelude::*, presentation, services};
 
 pub async fn logs(
     context: &context::Context,
     docker: &bollard::Docker,
+    service: services::ServiceKind,
     count: Option<u64>,
 ) -> Result<()> {
     let logs_count = count.unwrap_or(20);
     let should_follow = count.is_none();
 
-    presentation::print_logs_count(logs_count, should_follow);
+    let container_name = context.container_name_of(service);
 
-    let services = services::Services::from_context(context);
-
-    let container_name = services
-        .app()
-        .and_then(|app| app.to_container_config(context).ok())
-        .map(|config| config.container_name().to_owned());
-
-    let Some(container_name) = container_name else {
-        bail!("Cannot show logs without an app container");
-    };
+    presentation::print_logs_count(&container_name, logs_count, should_follow);
 
     let existing_container = match docker.inspect_container(&container_name, None).await {
         Ok(container) => Some(container),

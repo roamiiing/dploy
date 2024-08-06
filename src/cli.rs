@@ -1,4 +1,7 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+use serde::{Deserialize, Serialize};
+
+use crate::services::ServiceKind;
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -69,6 +72,31 @@ pub enum Command {
 pub enum DevCommand {
     /// Stop the application
     Stop,
+
+    /// Get logs of the specified service
+    Logs {
+        /// Number of logs to get. Omit to get 20 last logs + follow real time logs
+        #[clap(short, long)]
+        tail: Option<u64>,
+
+        /// Service to get logs from
+        #[clap(short, long)]
+        service: DevLogsService,
+    },
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum DevLogsService {
+    Postgres,
+}
+
+impl From<DevLogsService> for ServiceKind {
+    fn from(value: DevLogsService) -> Self {
+        match value {
+            DevLogsService::Postgres => ServiceKind::Postgres,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -81,7 +109,27 @@ pub enum RunCommand {
         /// Number of logs to get. Omit to get 20 last logs + follow real time logs
         #[clap(short, long)]
         tail: Option<u64>,
+
+        /// Service to get logs from
+        #[clap(short, long, default_value = "app")]
+        service: RunLogsService,
     },
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum RunLogsService {
+    App,
+    Postgres,
+}
+
+impl From<RunLogsService> for ServiceKind {
+    fn from(value: RunLogsService) -> Self {
+        match value {
+            RunLogsService::App => ServiceKind::App,
+            RunLogsService::Postgres => ServiceKind::Postgres,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -94,7 +142,27 @@ pub enum DeployCommand {
         /// Number of logs to get. Omit to get 20 last logs + follow realtime logs
         #[clap(short, long)]
         tail: Option<u64>,
+
+        /// Service to get logs from
+        #[clap(short, long, default_value = "app")]
+        service: DeployLogsService,
     },
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum DeployLogsService {
+    App,
+    Postgres,
+}
+
+impl From<DeployLogsService> for ServiceKind {
+    fn from(value: DeployLogsService) -> Self {
+        match value {
+            DeployLogsService::App => ServiceKind::App,
+            DeployLogsService::Postgres => ServiceKind::Postgres,
+        }
+    }
 }
 
 impl Command {
