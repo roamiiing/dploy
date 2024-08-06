@@ -52,6 +52,12 @@ async function main() {
   app.listen(3000, () => {
     console.log("Server started on port 3000");
   });
+
+  let logNumber = 0;
+
+  setInterval(() => {
+    console.log(logNumber++);
+  }, 1000);
 }
 
 void main();

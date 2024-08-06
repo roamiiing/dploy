@@ -34,6 +34,20 @@ pub fn print_connection_info(connection_info: &[(ServiceKind, String)]) {
     }
 }
 
+#[inline]
+pub fn print_logs_count(count: u64, is_follow: bool) {
+    println!("\nShowing you {} last logs", style(count).cyan());
+
+    if is_follow {
+        println!(
+            "Following realtime logs. To stop, press {}",
+            style("CTRL+C").cyan()
+        );
+    }
+
+    println!();
+}
+
 macro_rules! generate_println {
     ($($fn_name:ident($message:expr)),+ $(,)? ) => {
         $(

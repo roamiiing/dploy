@@ -48,48 +48,52 @@ async fn run_cli() -> Result<()> {
     let context = context::Context::new(args, app_config);
 
     match context.args().command() {
-        cli::Command::Dev { command, .. } => match command {
-            None => {
-                let docker = docker::get_default_docker_client().await?;
+        cli::Command::Dev { command, .. } => {
+            let docker = docker::get_default_docker_client().await?;
 
-                commands::deploy::deploy(&context, &docker).await?;
+            match command {
+                None => {
+                    commands::deploy::deploy(&context, &docker).await?;
+                }
+                Some(cli::DevCommand::Stop) => {
+                    commands::stop::stop(&context, &docker).await?;
+                }
             }
-            Some(cli::DevCommand::Stop) => {
-                let docker = docker::get_default_docker_client().await?;
+        }
 
-                commands::stop::stop(&context, &docker).await?;
+        cli::Command::Run { command, .. } => {
+            let docker = docker::get_default_docker_client().await?;
+
+            match command {
+                None => {
+                    commands::deploy::deploy(&context, &docker).await?;
+                }
+                Some(cli::RunCommand::Stop) => {
+                    commands::stop::stop(&context, &docker).await?;
+                }
+                Some(cli::RunCommand::Logs { tail, .. }) => {
+                    commands::logs::logs(&context, &docker, tail.clone()).await?;
+                }
             }
-        },
+        }
 
-        cli::Command::Run { command, .. } => match command {
-            None => {
-                let docker = docker::get_default_docker_client().await?;
+        cli::Command::Deploy { command, .. } => {
+            let (docker, session) = docker::get_docker_client_with_session(&context).await?;
 
-                commands::deploy::deploy(&context, &docker).await?;
+            match command {
+                None => {
+                    commands::deploy::deploy(&context, &docker).await?;
+                }
+                Some(cli::DeployCommand::Stop) => {
+                    commands::stop::stop(&context, &docker).await?;
+                }
+                Some(cli::DeployCommand::Logs { tail, .. }) => {
+                    commands::logs::logs(&context, &docker, tail.clone()).await?;
+                }
             }
-            Some(cli::RunCommand::Stop) => {
-                let docker = docker::get_default_docker_client().await?;
 
-                commands::stop::stop(&context, &docker).await?;
-            }
-        },
-
-        cli::Command::Deploy { command, .. } => match command {
-            None => {
-                let (docker, session) = docker::get_docker_client_with_session(&context).await?;
-
-                commands::deploy::deploy(&context, &docker).await?;
-
-                session.close().await?;
-            }
-            Some(cli::DeployCommand::Stop) => {
-                let (docker, session) = docker::get_docker_client_with_session(&context).await?;
-
-                commands::stop::stop(&context, &docker).await?;
-
-                session.close().await?;
-            }
-        },
+            session.close().await?;
+        }
     }
 
     Ok(())

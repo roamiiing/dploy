@@ -75,12 +75,26 @@ pub enum DevCommand {
 pub enum RunCommand {
     /// Stop the application
     Stop,
+
+    /// Get logs of application container
+    Logs {
+        /// Number of logs to get. Omit to get 20 last logs + follow real time logs
+        #[clap(short, long)]
+        tail: Option<u64>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
 pub enum DeployCommand {
     /// Stop the application
     Stop,
+
+    /// Get logs of application container
+    Logs {
+        /// Number of logs to get. Omit to get 20 last logs + follow realtime logs
+        #[clap(short, long)]
+        tail: Option<u64>,
+    },
 }
 
 impl Command {
