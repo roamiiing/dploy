@@ -91,6 +91,12 @@ impl Context {
         matches!(self.args.command(), Dev { .. } | Run { .. })
     }
 
+    pub fn should_create_network(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Dev { .. } | Run { .. })
+    }
+
     pub fn mount(&self, service_kind: ServiceKind, inner_path: &str) -> models::Mount {
         models::Mount {
             source: Some(

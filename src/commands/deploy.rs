@@ -29,8 +29,10 @@ pub async fn deploy(context: &context::Context, docker: &bollard::Docker) -> Res
         generate_env(&services, context)?;
     }
 
-    presentation::print_network_creating();
-    network::create_dploy_network(docker).await?;
+    if context.should_create_network() {
+        presentation::print_network_creating();
+        network::create_dploy_network(docker).await?;
+    }
 
     presentation::print_dependencies_starting();
     deploy_dependencies(&services, context, docker).await?;

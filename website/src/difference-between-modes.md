@@ -62,7 +62,9 @@ In `run` mode, dploy starts both your application and its dependencies on your l
 
 Your application is built using the `Dockerfile` and then automatically started. In this mode, dploy handles the loading of the `.env` file and sets the variables inside the application container.
 
-Networking is similar to `dev` mode, with container ports exposed on random free ports.
+Networking in run mode works similarly to dev mode, with container ports exposed on random free ports. However, all containers use the bridge network internally. In the .env file, you'll notice that the APP_POSTGRES_URL variable's host is set to project_postgres_default. Additionally, this bridge network is shared among all projects using dploy, allowing you to develop microservices easily.
+
+Essentially, run mode combines the features of both `dev` and `deploy` modes, offering the convenience of local development with the structure of remote deployment.
 
 ![dploy_run_mode_containers](assets/dploy_run_mode_containers.png)
 
@@ -102,8 +104,10 @@ dploy deploy <host> stop
 
 The table below highlights the differences between the three modes:
 
-| Feature         | `dev`  | `run`  | `deploy` |
-| --------------- | ------ | ------ | -------- |
-| .env generation | Yes    | Yes    | No       |
-| Networking      | Host   | Host   | Bridge   |
-| Port exposure   | Random | Random | No       |
+| Feature             | `dev`                                      | `run`                             | `deploy`                          |
+| ------------------- | ------------------------------------------ | --------------------------------- | --------------------------------- |
+| Use case            | Debugging in an IDE                        | Running or testing locally        | Deploying to production           |
+| Application startup | Manual                                     | Automatic (built from Dockerfile) | Automatic (built from Dockerfile) |
+| .env generation     | Yes (don't forget to load `.env` manually) | Yes                               | No                                |
+| Networking          | Host                                       | Host + Bridge                     | Bridge                            |
+| Port exposure       | Random                                     | Random                            | No                                |

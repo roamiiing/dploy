@@ -15,8 +15,9 @@ pub async fn logs(
     count: Option<u64>,
 ) -> Result<()> {
     let logs_count = count.unwrap_or(20);
+    let should_follow = count.is_none();
 
-    presentation::print_logs_count(logs_count, count.is_none());
+    presentation::print_logs_count(logs_count, should_follow);
 
     let services = services::Services::from_context(context);
 
@@ -52,10 +53,10 @@ pub async fn logs(
     let logs = docker.logs(
         &container_name,
         Some(bollard::container::LogsOptions {
-            follow: count.is_none(),
             stdout: true,
             stderr: true,
-            tail: count.unwrap_or(20).to_string(),
+            follow: should_follow,
+            tail: logs_count.to_string(),
             ..Default::default()
         }),
     );

@@ -16,7 +16,7 @@ pub fn print_config_not_found_error() {
     eprintln!("It seems that the config file does not exist.");
     eprintln!(
         "Please make sure the file exists and is named {}",
-        style("config.toml").cyan()
+        style("dploy.toml").cyan()
     );
     eprintln!("or specify the path to the config file with the --config flag.\n");
 }
@@ -93,7 +93,7 @@ generate_println_with_label! {
     print_dependency_pulling(style("Pulling").cyan()),
     print_image_building(style("Building image").cyan()),
     print_image_built(style("Image built").green()),
-    print_app_container_creating(style("Creating container").green()),
+    print_app_container_creating(style("Creating container").cyan()),
     print_app_container_removing(style("Removing container").cyan()),
     print_app_container_starting(style("Starting container").cyan()),
     print_app_container_success(style("Success").green()),
