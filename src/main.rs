@@ -2,25 +2,33 @@
 
 use std::fs;
 
-use anyhow::{Context, Result};
-use bollard::Docker;
 use clap::Parser;
-use cli::Command;
-use deploy::{deploy, stop};
-use ssh::get_remote_docker_client;
+
+use crate::prelude::*;
 
 mod build;
 mod cli;
+mod commands;
 mod config;
 mod context;
-mod deploy;
+mod docker;
 mod network;
+mod prelude;
 mod presentation;
 mod services;
 mod ssh;
 mod utils;
 
-const ENV_FILE_NAME: &str = ".env";
+#[tokio::main]
+async fn main() -> Result<()> {
+    match run_cli().await {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(1);
+        }
+    }
+}
 
 async fn run_cli() -> Result<()> {
     let args = cli::Args::try_parse()?;
@@ -38,35 +46,51 @@ async fn run_cli() -> Result<()> {
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
     let context = context::Context::new(args, app_config);
-    let (docker, session) = if matches!(context.args().command(), Command::Deploy { .. }) {
-        let (docker, session) = get_remote_docker_client(&context).await?;
-        (docker, Some(session))
-    } else {
-        (Docker::connect_with_defaults()?, None)
-    };
 
-    docker.ping().await.context("Could not ping docker")?;
+    match context.args().command() {
+        cli::Command::Dev { command, .. } => match command {
+            None => {
+                let docker = docker::get_default_docker_client().await?;
 
-    if context.args().command().stop() {
-        stop(&context, &docker).await?;
-    } else {
-        deploy(&context, &docker).await?;
-    }
+                commands::deploy::deploy(&context, &docker).await?;
+            }
+            Some(cli::DevCommand::Stop) => {
+                let docker = docker::get_default_docker_client().await?;
 
-    if let Some(session) = session {
-        session.close().await?;
+                commands::stop::stop(&context, &docker).await?;
+            }
+        },
+
+        cli::Command::Run { command, .. } => match command {
+            None => {
+                let docker = docker::get_default_docker_client().await?;
+
+                commands::deploy::deploy(&context, &docker).await?;
+            }
+            Some(cli::RunCommand::Stop) => {
+                let docker = docker::get_default_docker_client().await?;
+
+                commands::stop::stop(&context, &docker).await?;
+            }
+        },
+
+        cli::Command::Deploy { command, .. } => match command {
+            None => {
+                let (docker, session) = docker::get_docker_client_with_session(&context).await?;
+
+                commands::deploy::deploy(&context, &docker).await?;
+
+                session.close().await?;
+            }
+            Some(cli::DeployCommand::Stop) => {
+                let (docker, session) = docker::get_docker_client_with_session(&context).await?;
+
+                commands::stop::stop(&context, &docker).await?;
+
+                session.close().await?;
+            }
+        },
     }
 
     Ok(())
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    match run_cli().await {
-        Ok(_) => Ok(()),
-        Err(error) => {
-            eprintln!("{}", error);
-            std::process::exit(1);
-        }
-    }
 }

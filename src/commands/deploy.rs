@@ -1,36 +1,28 @@
-use anyhow::Result;
-use bollard::{
-    container::{self, StartContainerOptions},
-    image,
-    secret::{ContainerInspectResponse, ImageInspect},
-    Docker,
-};
-use futures_util::TryStreamExt;
-
 use std::{
     collections::{BTreeMap, HashSet},
     io::Write,
     path::Path,
 };
 
+use futures_util::TryStreamExt;
+
 use crate::{
-    build::build_app_service_image,
-    context::Context,
-    network::create_dploy_network,
+    build, context, network,
+    prelude::*,
     presentation,
-    services::{app::AppService, Services, ToContainerConfig},
+    services::{self, ToContainerConfig},
 };
 
 const ENV_FILE_NAME: &str = ".env";
 
-pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
+pub async fn deploy(context: &context::Context, docker: &bollard::Docker) -> Result<()> {
     if dotenvy::from_path(ENV_FILE_NAME).is_ok() {
         presentation::print_env_file_loaded();
     } else {
         presentation::print_env_file_failed_to_load();
     }
 
-    let services = Services::from_context(context);
+    let services = services::Services::from_context(context);
 
     if context.should_generate_env_file() {
         presentation::print_env_file_generating();
@@ -38,7 +30,7 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
     }
 
     presentation::print_network_creating();
-    create_dploy_network(docker).await?;
+    network::create_dploy_network(docker).await?;
 
     presentation::print_dependencies_starting();
     deploy_dependencies(&services, context, docker).await?;
@@ -55,29 +47,16 @@ pub async fn deploy(context: &Context, docker: &Docker) -> Result<()> {
     Ok(())
 }
 
-pub async fn stop(context: &Context, docker: &Docker) -> Result<()> {
-    let services = Services::from_context(context);
-
-    if let Some(service) = services.app() {
-        stop_app_service(service, context, docker).await?;
-    }
-
-    presentation::print_dependencies_stopping();
-    stop_dependencies(&services, context, docker).await?;
-
-    Ok(())
-}
-
 async fn deploy_app_service(
-    app_service: &AppService,
-    context: &Context,
-    docker: &Docker,
+    app_service: &services::app::AppService,
+    context: &context::Context,
+    docker: &bollard::Docker,
 ) -> Result<()> {
     let container_config = app_service.to_container_config(context)?;
     let container_name = container_config.container_name();
 
     presentation::print_image_building(container_name);
-    build_app_service_image(app_service, docker).await?;
+    build::build_app_service_image(app_service, docker).await?;
     presentation::print_image_built(container_name);
 
     let existing_container = match docker.inspect_container(container_name, None).await {
@@ -97,7 +76,7 @@ async fn deploy_app_service(
     presentation::print_app_container_creating(container_name);
     docker
         .create_container(
-            Some(container::CreateContainerOptions {
+            Some(bollard::container::CreateContainerOptions {
                 name: container_name,
                 ..Default::default()
             }),
@@ -107,7 +86,10 @@ async fn deploy_app_service(
 
     presentation::print_app_container_starting(container_name);
     docker
-        .start_container(container_name, None::<StartContainerOptions<String>>)
+        .start_container(
+            container_name,
+            None::<bollard::container::StartContainerOptions<String>>,
+        )
         .await?;
 
     presentation::print_app_container_success(container_name);
@@ -115,68 +97,7 @@ async fn deploy_app_service(
     Ok(())
 }
 
-async fn stop_app_service(
-    app_service: &AppService,
-    context: &Context,
-    docker: &Docker,
-) -> Result<()> {
-    let container_config = app_service.to_container_config(context)?;
-    let container_name = container_config.container_name();
-
-    presentation::print_app_container_removing(container_name);
-
-    let existing_container = match docker.inspect_container(container_name, None).await {
-        Ok(container) => Some(container),
-        Err(bollard::errors::Error::DockerResponseServerError {
-            status_code: 404, ..
-        }) => None,
-        Err(e) => return Err(e.into()),
-    };
-
-    if should_stop_container(existing_container.as_ref()) {
-        docker.stop_container(container_name, None).await?;
-        presentation::print_app_container_stopped(container_name);
-    } else {
-        presentation::print_app_container_already_stopped(container_name);
-    }
-
-    Ok(())
-}
-
-async fn stop_dependencies(services: &Services, context: &Context, docker: &Docker) -> Result<()> {
-    let container_configs = services.to_container_configs(&context)?;
-
-    for config in container_configs {
-        let container_name = config.container_name();
-
-        let existing_container = match docker.inspect_container(container_name, None).await {
-            Ok(container) => Some(container),
-            Err(bollard::errors::Error::DockerResponseServerError {
-                status_code: 404, ..
-            }) => None,
-            Err(e) => return Err(e.into()),
-        };
-
-        presentation::print_dependency_stopping(container_name);
-        if should_stop_container(existing_container.as_ref()) {
-            docker.stop_container(container_name, None).await?;
-            presentation::print_dependency_stopped(container_name);
-        } else {
-            presentation::print_dependency_already_stopped(container_name);
-        }
-    }
-
-    Ok(())
-}
-
-fn should_stop_container(existing_container: Option<&ContainerInspectResponse>) -> bool {
-    existing_container
-        .and_then(|existing_container| existing_container.state.as_ref())
-        .and_then(|state| state.running)
-        .is_some_and(|running| running)
-}
-
-fn generate_env(services: &Services, context: &Context) -> Result<()> {
+fn generate_env(services: &services::Services, context: &context::Context) -> Result<()> {
     let existing_env = get_existing_env();
     let is_generated_first_time = existing_env.is_none();
     let existing_env = existing_env.unwrap_or_default();
@@ -264,9 +185,9 @@ fn generate_env_file(
 }
 
 async fn deploy_dependencies(
-    services: &Services,
-    context: &Context,
-    docker: &Docker,
+    services: &services::Services,
+    context: &context::Context,
+    docker: &bollard::Docker,
 ) -> Result<()> {
     let container_configs = services.to_container_configs(&context)?;
 
@@ -278,7 +199,7 @@ async fn deploy_dependencies(
         presentation::print_dependency_pulling(container_name);
         docker
             .create_image(
-                Some(image::CreateImageOptions {
+                Some(bollard::image::CreateImageOptions {
                     from_image: image_name,
                     tag: "latest",
                     ..Default::default()
@@ -308,7 +229,7 @@ async fn deploy_dependencies(
                 docker
                     .remove_container(
                         container_name,
-                        Some(container::RemoveContainerOptions {
+                        Some(bollard::container::RemoveContainerOptions {
                             force: true,
                             ..Default::default()
                         }),
@@ -318,7 +239,7 @@ async fn deploy_dependencies(
 
             docker
                 .create_container(
-                    Some(container::CreateContainerOptions {
+                    Some(bollard::container::CreateContainerOptions {
                         name: container_name,
                         platform: None,
                     }),
@@ -329,7 +250,10 @@ async fn deploy_dependencies(
 
         presentation::print_dependency_starting(container_name);
         docker
-            .start_container(container_name, None::<StartContainerOptions<String>>)
+            .start_container(
+                container_name,
+                None::<bollard::container::StartContainerOptions<String>>,
+            )
             .await?;
 
         presentation::print_dependency_success(container_name);
@@ -339,8 +263,8 @@ async fn deploy_dependencies(
 }
 
 fn should_recreate_dependency_container(
-    image_info: &ImageInspect,
-    container_info: Option<&ContainerInspectResponse>,
+    image_info: &bollard::models::ImageInspect,
+    container_info: Option<&bollard::models::ContainerInspectResponse>,
 ) -> bool {
     let Some(image_id) = &image_info.id else {
         return true;
