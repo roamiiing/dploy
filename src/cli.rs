@@ -42,24 +42,45 @@ pub enum Command {
         #[clap(short, long)]
         keyfile: Option<String>,
 
-        /// Stop the application
-        #[clap(short, long, default_value_t = false)]
-        stop: bool,
+        /// Subcommand
+        /// Run without any subcommand to start the application
+        #[clap(subcommand)]
+        command: Option<DeployCommand>,
     },
 
     /// Run the application with all its dependencies locally
     Run {
-        /// Stop the application
-        #[clap(short, long, default_value_t = false)]
-        stop: bool,
+        /// Subcommand
+        /// Run without any subcommand to start the application
+        #[clap(subcommand)]
+        command: Option<RunCommand>,
     },
 
     /// Run only the dependencies of the application locally
     Dev {
-        /// Stop the application
-        #[clap(short, long, default_value_t = false)]
-        stop: bool,
+        /// Subcommand
+        /// Run without any subcommand to start the application
+        #[clap(subcommand)]
+        command: Option<DevCommand>,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DevCommand {
+    /// Stop the application
+    Stop,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum RunCommand {
+    /// Stop the application
+    Stop,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DeployCommand {
+    /// Stop the application
+    Stop,
 }
 
 impl Command {
@@ -67,7 +88,9 @@ impl Command {
         use Command::*;
 
         match self {
-            Run { stop, .. } | Dev { stop, .. } | Deploy { stop, .. } => *stop,
+            Deploy { command, .. } => matches!(command, Some(DeployCommand::Stop)),
+            Run { command, .. } => matches!(command, Some(RunCommand::Stop)),
+            Dev { command, .. } => matches!(command, Some(DevCommand::Stop)),
         }
     }
 }

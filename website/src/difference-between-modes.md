@@ -47,7 +47,7 @@ In `dev` mode, you must run your application manually, ensuring that the `.env` 
 To stop the services, run:
 
 ```bash
-dploy dev --stop
+dploy dev stop
 ```
 
 ## `run` Mode
@@ -69,7 +69,7 @@ Networking is similar to `dev` mode, with container ports exposed on random free
 To stop the services, run:
 
 ```bash
-dploy run --stop
+dploy run stop
 ```
 
 ## `deploy` Mode
@@ -95,7 +95,7 @@ All networking is handled through dploy's bridge network, and dependency contain
 To stop the services, run:
 
 ```bash
-dploy deploy <host> --stop
+dploy deploy <host> stop
 ```
 
 ## Differences Summary

@@ -51,7 +51,7 @@ In `dev` mode, dploy starts only the necessary dependencies (such as PostgreSQL)
 To stop the services, run:
 
 ```bash
-dploy dev --stop
+dploy dev stop
 ```
 
 ### `run` Mode
@@ -65,7 +65,7 @@ In `run` mode, dploy starts both your application and its dependencies on your l
 To stop the services, run:
 
 ```bash
-dploy run --stop
+dploy run stop
 ```
 
 ### `deploy` Mode
@@ -85,5 +85,5 @@ The flags are:
 To stop the services, run:
 
 ```bash
-dploy deploy <host> --stop
+dploy deploy <host> stop
 ```
