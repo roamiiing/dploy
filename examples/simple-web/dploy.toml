@@ -11,7 +11,18 @@ expose_namespace_to_env = "DPLOY_NAMESPACE"
 [postgres]
 expose_url_to_env = "POSTGRES_URL"
 
+[[proxy]]
+domain = "testing.bb.roamiiing.ru"
+port = 3000
+
 [[override]]
 for = { command = "run" }
 dockerfile = "Dockerfile.dev"
+
+[[override]]
+for = { namespace = "staging" }
+
+[[override.proxy]]
+domain = "staging.bb.roamiiing.ru"
+port = 3000
 

@@ -180,6 +180,7 @@ pub enum DeployCommand {
 pub enum DeployLogsService {
     App,
     Postgres,
+    Proxy,
 }
 
 impl From<DeployLogsService> for ServiceKind {
@@ -187,6 +188,7 @@ impl From<DeployLogsService> for ServiceKind {
         match value {
             DeployLogsService::App => ServiceKind::App,
             DeployLogsService::Postgres => ServiceKind::Postgres,
+            DeployLogsService::Proxy => ServiceKind::Proxy,
         }
     }
 }

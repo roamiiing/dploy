@@ -8,7 +8,8 @@ use bollard::models;
 use crate::{
     cli::{Args, Command},
     config::{self, AppConfig},
-    services::ServiceKind,
+    constants,
+    services::{self, ServiceKind},
     utils::network::free_port,
 };
 
@@ -59,6 +60,7 @@ impl Context {
 
         let suffix = {
             use ServiceKind::*;
+
             match service_kind {
                 Postgres => "postgres",
                 Keydb => "keydb",
@@ -67,7 +69,12 @@ impl Context {
             }
         };
 
-        let namespace = self.namespace();
+        let namespace = if service_kind == services::ServiceKind::Proxy {
+            // proxy is not namespaced because it's exposed to the host's network
+            constants::DEFAULT_NAMESPACE
+        } else {
+            self.namespace()
+        };
 
         format!("{prefix}_{suffix}_{namespace}")
     }

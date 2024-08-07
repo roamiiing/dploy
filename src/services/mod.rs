@@ -7,6 +7,7 @@ pub mod app;
 pub mod postgres;
 pub mod proxy;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceKind {
     /// Service being developed with dploy
     App,
