@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, sync::Arc};
 
 use clap::Parser;
 
@@ -10,6 +10,7 @@ mod build;
 mod cli;
 mod commands;
 mod config;
+mod constants;
 mod context;
 mod docker;
 mod network;
@@ -34,6 +35,11 @@ async fn run_cli() -> Result<()> {
     let args = cli::Args::try_parse()?;
 
     presentation::print_cli_info();
+
+    let namespace = args.namespace();
+    if namespace != constants::DEFAULT_NAMESPACE {
+        presentation::print_namespace_info(namespace);
+    }
 
     let file_contents = match fs::read_to_string(&args.config) {
         Ok(contents) => contents,

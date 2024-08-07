@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 
-use crate::services::ServiceKind;
+use crate::{constants, services::ServiceKind};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -11,6 +11,10 @@ pub struct Args {
     #[clap(short, long, default_value = "dploy.toml")]
     pub config: String,
 
+    /// Namespace (or postfix) to use
+    #[clap(short, long, default_value = constants::DEFAULT_NAMESPACE)]
+    pub namespace: String,
+
     #[clap(subcommand)]
     pub command: Command,
 }
@@ -18,6 +22,10 @@ pub struct Args {
 impl Args {
     pub fn config(&self) -> &str {
         &self.config
+    }
+
+    pub fn namespace(&self) -> &str {
+        &self.namespace
     }
 
     pub fn command(&self) -> &Command {

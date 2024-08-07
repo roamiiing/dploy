@@ -113,9 +113,13 @@ pub async fn deploy_watch(
                     continue;
                 }
 
+                presentation::print_watch_files_changed();
+
                 handle.abort();
 
-                deploy(&context, &docker, services).await?;
+                if let Some(service) = services.app() {
+                    deploy_app_service(service, &context, &docker).await?;
+                }
 
                 handle = tokio::spawn(logs::logs(
                     Arc::clone(&context),

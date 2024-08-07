@@ -52,6 +52,15 @@ pub fn print_logs_count(service_name: &str, count: u64, is_follow: bool) {
     println!();
 }
 
+#[inline]
+pub fn print_namespace_info(namespace: &str) {
+    println!(
+        "{} Using namespace {}\n",
+        style("Notice:").yellow(),
+        style(namespace).cyan().bold()
+    )
+}
+
 macro_rules! generate_println {
     ($($fn_name:ident($message:expr)),+ $(,)? ) => {
         $(
@@ -87,6 +96,7 @@ generate_println! {
     print_network_creating(style("Creating network").cyan()),
     print_ctrlc_received(style("\n\nReceived escape sequence. Please wait until current tasks are finished\n").red()),
     print_ctrlc_started(style("\nStopping services because of escape sequence...\n").red()),
+    print_watch_files_changed(style("\nFiles changed. Restarting...").cyan()),
 }
 
 generate_println_with_label! {

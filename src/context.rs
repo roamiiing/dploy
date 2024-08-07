@@ -27,13 +27,17 @@ impl Context {
         &self.args
     }
 
+    pub fn namespace(&self) -> &str {
+        &self.args().namespace()
+    }
+
     pub fn app_config(&self) -> &AppConfig {
         &self.app_config
     }
 
     pub fn container_name_of(&self, service_kind: ServiceKind) -> String {
         let prefix = if service_kind.is_singleton() {
-            "dploysingleton"
+            "dploy-singleton"
         } else {
             self.app_config.name()
         };
@@ -48,10 +52,9 @@ impl Context {
             }
         };
 
-        // TODO: Allow users to customize the "default" part
-        // to deploy different versions of the same service
-        // simultaneously
-        format!("{prefix}_{suffix}_default")
+        let namespace = self.namespace();
+
+        format!("{prefix}_{suffix}_{namespace}")
     }
 
     pub fn volume_path_of(&self, service_kind: ServiceKind, path: impl AsRef<Path>) -> PathBuf {
