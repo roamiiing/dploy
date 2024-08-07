@@ -27,6 +27,7 @@ pub async fn deploy(
     context: &context::Context,
     docker: &bollard::Docker,
     services: &services::Services,
+    session: Option<&openssh::Session>,
 ) -> Result<()> {
     if dotenvy::from_path(context.app_config().env_file(context.override_context())).is_ok() {
         presentation::print_env_file_loaded();
@@ -51,6 +52,9 @@ pub async fn deploy(
         deploy_app_service(service, context, docker).await?;
     }
 
+    presentation::print_post_up_running();
+    services.post_up(context, docker, session).await?;
+
     if context.should_print_connection_info() {
         let connection_info = services.connection_info();
         presentation::print_connection_info(&connection_info);
@@ -63,13 +67,14 @@ pub async fn deploy_watch(
     context: Arc<context::Context>,
     docker: Arc<bollard::Docker>,
     services: &services::Services,
+    session: Option<&openssh::Session>,
     watch_paths: &[&Path],
 ) -> Result<()> {
     if watch_paths.is_empty() {
         bail!("Called with --watch flag but no paths were provided. Please provide at least one path to watch in the dploy.toml");
     }
 
-    deploy(&context, &docker, services).await?;
+    deploy(&context, &docker, services, session).await?;
     let mut handle = tokio::spawn(logs::logs(
         Arc::clone(&context),
         Arc::clone(&docker),

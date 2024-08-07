@@ -86,6 +86,10 @@ pub struct TopLevelAppConfig {
     /// Configuration for Keydb
     #[serde(default)]
     keydb: Option<KeydbConfig>,
+
+    /// Configuration for Proxy
+    #[serde(default)]
+    proxy: Vec<ProxyConfig>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -130,6 +134,10 @@ pub struct TopLevelOverrideConfig {
     /// Configuration for Keydb
     #[serde(default)]
     keydb: Option<KeydbConfig>,
+
+    /// Configuration for Proxy
+    #[serde(default)]
+    proxy: Option<Vec<ProxyConfig>>,
 }
 
 impl AppConfig {
@@ -206,6 +214,14 @@ impl AppConfig {
             context,
             |config| config.keydb.as_ref(),
             |config| config.keydb.as_ref(),
+        )
+    }
+
+    pub fn proxy(&self, context: &OverrideContext) -> &[ProxyConfig] {
+        self.resolve_field(
+            context,
+            |config| &config.proxy,
+            |config| config.proxy.as_ref(),
         )
     }
 
@@ -312,6 +328,16 @@ impl KeydbConfig {
     pub fn expose_url_to_env(&self) -> Option<&str> {
         self.expose_url_to_env.as_deref()
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProxyConfig {
+    /// Domain name of the proxy
+    /// Note that SSL will be generated automatically
+    pub domain: String,
+
+    /// Port inside the container
+    pub port: u16,
 }
 
 #[cfg(test)]

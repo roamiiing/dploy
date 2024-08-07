@@ -106,6 +106,7 @@ generate_println! {
     print_ctrlc_received(style("\n\nReceived escape sequence. Please wait until current tasks are finished\n").red()),
     print_ctrlc_started(style("\nStopping services because of escape sequence...\n").red()),
     print_watch_files_changed(style("\nFiles changed. Restarting...").cyan()),
+    print_post_up_running(style("Post up actions running").cyan()),
 }
 
 generate_println_with_label! {
@@ -125,4 +126,6 @@ generate_println_with_label! {
     print_app_container_stopped(style("Stopped").green()),
     print_remote_host_connecting(style("Connecting").cyan()),
     print_remote_host_success(style("Success").green()),
+    print_proxy_updating(style("Updating").cyan()),
+    print_proxy_success(style("Success").green()),
 }

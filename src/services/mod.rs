@@ -1,10 +1,11 @@
 use anyhow::Result;
 use bollard::container;
 
-use crate::context::Context;
+use crate::{context::Context, presentation};
 
 pub mod app;
 pub mod postgres;
+pub mod proxy;
 
 pub enum ServiceKind {
     /// Service being developed with dploy
@@ -88,6 +89,7 @@ pub trait ConnectionInfo {
 pub struct Services {
     app: Option<app::AppService>,
     postgres: Option<postgres::PostgresService>,
+    proxy: Option<proxy::ProxyService>,
 }
 
 impl Services {
@@ -104,7 +106,16 @@ impl Services {
             .should_create_app_service()
             .then(|| app::AppService::from_context(context, app_service_env_vars));
 
-        Self { app, postgres }
+        let proxy = context
+            .should_create_proxy_service()
+            .then(|| proxy::ProxyService::from_context(context))
+            .flatten();
+
+        Self {
+            app,
+            postgres,
+            proxy,
+        }
     }
 
     pub fn app(&self) -> Option<&app::AppService> {
@@ -118,7 +129,31 @@ impl Services {
             configs.push(postgres.to_container_config(context)?);
         }
 
+        if let Some(proxy) = &self.proxy {
+            if context.should_create_proxy_service() {
+                configs.push(proxy.to_container_config(context)?);
+            }
+        }
+
         Ok(configs)
+    }
+
+    pub async fn post_up(
+        &self,
+        context: &Context,
+        docker: &bollard::Docker,
+        session: Option<&openssh::Session>,
+    ) -> Result<()> {
+        match (&self.proxy, session) {
+            (Some(proxy), Some(session)) => {
+                presentation::print_proxy_updating(proxy.name());
+                proxy.post_up(context, session, docker).await?;
+                presentation::print_proxy_success(proxy.name());
+            }
+            _ => (),
+        }
+
+        Ok(())
     }
 
     pub fn env_vars(&self, context: &Context) -> Vec<(String, String)> {

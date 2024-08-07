@@ -111,6 +111,12 @@ impl Context {
         matches!(self.args.command(), Deploy { .. } | Run { .. })
     }
 
+    pub fn should_create_proxy_service(&self) -> bool {
+        use Command::*;
+
+        matches!(self.args.command(), Deploy { command: None, .. })
+    }
+
     pub fn should_generate_env_file(&self) -> bool {
         use Command::*;
 
@@ -123,6 +129,31 @@ impl Context {
         matches!(self.args.command(), Dev { .. } | Run { .. })
     }
 
+    pub fn manual_mount(&self, outer_path: &str, inner_path: &str) -> models::Mount {
+        models::Mount {
+            source: Some(
+                self.get_dploy_dir()
+                    .join(outer_path)
+                    .to_string_lossy()
+                    .to_string(),
+            ),
+            target: Some(inner_path.to_owned()),
+
+            bind_options: Some(models::MountBindOptions {
+                create_mountpoint: Some(true),
+                ..Default::default()
+            }),
+
+            typ: Some(models::MountTypeEnum::BIND),
+
+            ..Default::default()
+        }
+    }
+
+    pub fn manual_volume_path(&self, outer_path: &str) -> PathBuf {
+        self.get_dploy_dir().join(outer_path)
+    }
+
     pub fn mount(&self, service_kind: ServiceKind, inner_path: &str) -> models::Mount {
         models::Mount {
             source: Some(
@@ -133,7 +164,6 @@ impl Context {
             target: Some(inner_path.to_owned()),
 
             bind_options: Some(models::MountBindOptions {
-                // TODO: check if this is the best way to do this
                 create_mountpoint: Some(true),
                 ..Default::default()
             }),
@@ -223,6 +253,15 @@ impl HostPortBinding {
         }
     }
 
+    pub fn manual(host_port: u16, host_host: &str, inner_port: u16, inner_host: &str) -> Self {
+        Self {
+            inner_port,
+            inner_host: inner_host.to_owned(),
+            host_port: Some(host_port),
+            host_host: host_host.to_owned(),
+        }
+    }
+
     pub fn to_port_bindings(
         bindings: &[&HostPortBinding],
     ) -> HashMap<String, Option<Vec<models::PortBinding>>> {
@@ -234,7 +273,8 @@ impl HostPortBinding {
 
             let inner_port = binding.inner_port();
 
-            if let Some(host_port) = host_port { map.insert(
+            if let Some(host_port) = host_port {
+                map.insert(
                     // TODO: allow using not only tcp
                     format!("{inner_port}/tcp"),
                     Some(vec![models::PortBinding {
@@ -242,7 +282,8 @@ impl HostPortBinding {
                         host_port: Some(host_port.to_string()),
                         ..Default::default()
                     }]),
-                ); }
+                );
+            }
         }
 
         map
