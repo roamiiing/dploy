@@ -2,27 +2,38 @@ use std::{
     collections::{BTreeMap, HashSet},
     io::Write,
     path::Path,
+    sync::Arc,
+    time::{Duration, Instant},
 };
 
 use futures_util::TryStreamExt;
+use notify::Watcher;
 
 use crate::{
-    build, context, network,
+    build,
+    commands::stop::stop,
+    context, network,
     prelude::*,
     presentation,
     services::{self, ToContainerConfig},
 };
 
-const ENV_FILE_NAME: &str = ".env";
+use super::logs;
 
-pub async fn deploy(context: &context::Context, docker: &bollard::Docker) -> Result<()> {
+const ENV_FILE_NAME: &str = ".env";
+const WATCH_POLL_INTERVAL: Duration = Duration::from_secs(1);
+const WATCH_COOLDOWN: Duration = Duration::from_secs(3);
+
+pub async fn deploy(
+    context: &context::Context,
+    docker: &bollard::Docker,
+    services: &services::Services,
+) -> Result<()> {
     if dotenvy::from_path(ENV_FILE_NAME).is_ok() {
         presentation::print_env_file_loaded();
     } else {
         presentation::print_env_file_failed_to_load();
     }
-
-    let services = services::Services::from_context(context);
 
     if context.should_generate_env_file() {
         presentation::print_env_file_generating();
@@ -45,6 +56,83 @@ pub async fn deploy(context: &context::Context, docker: &bollard::Docker) -> Res
         let connection_info = services.connection_info();
         presentation::print_connection_info(&connection_info);
     }
+
+    Ok(())
+}
+
+pub async fn deploy_watch(
+    context: Arc<context::Context>,
+    docker: Arc<bollard::Docker>,
+    services: &services::Services,
+    watch_paths: &[&Path],
+) -> Result<()> {
+    if watch_paths.is_empty() {
+        bail!("Called with --watch flag but no paths were provided. Please provide at least one path to watch in the dploy.toml");
+    }
+
+    deploy(&context, &docker, services).await?;
+    let mut handle = tokio::spawn(logs::logs(
+        Arc::clone(&context),
+        Arc::clone(&docker),
+        services::ServiceKind::App,
+        None,
+    ));
+
+    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx_abort, rx_abort) = std::sync::mpsc::channel();
+
+    let mut debouncer = notify_debouncer_full::new_debouncer(WATCH_POLL_INTERVAL, None, tx)?;
+
+    let watcher = debouncer.watcher();
+
+    for path in watch_paths {
+        watcher
+            .watch(path, notify::RecursiveMode::Recursive)
+            .context("Could not start watcher. Please make sure the folder exists")?;
+    }
+
+    ctrlc::set_handler(move || {
+        presentation::print_ctrlc_received();
+        tx_abort.send(()).unwrap();
+    })?;
+
+    let mut last_deploy = Instant::now();
+
+    // don't care about blocking here
+    loop {
+        if rx_abort.try_recv().is_ok() {
+            break;
+        }
+
+        if let Ok(res) = rx.try_recv() {
+            if let Ok(events) = res {
+                if Instant::now() - last_deploy < WATCH_COOLDOWN
+                    || events.is_empty()
+                    || !events.iter().any(|event| event.kind.is_modify())
+                {
+                    continue;
+                }
+
+                handle.abort();
+
+                deploy(&context, &docker, services).await?;
+
+                handle = tokio::spawn(logs::logs(
+                    Arc::clone(&context),
+                    Arc::clone(&docker),
+                    services::ServiceKind::App,
+                    None,
+                ));
+
+                last_deploy = Instant::now();
+            }
+        }
+    }
+
+    handle.abort();
+
+    presentation::print_ctrlc_started();
+    stop(&context, &docker, services).await?;
 
     Ok(())
 }

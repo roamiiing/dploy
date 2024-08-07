@@ -1,12 +1,12 @@
-use std::io::Write;
+use std::{io::Write, sync::Arc};
 
 use futures_util::TryStreamExt;
 
 use crate::{context, prelude::*, presentation, services};
 
 pub async fn logs(
-    context: &context::Context,
-    docker: &bollard::Docker,
+    context: Arc<context::Context>,
+    docker: Arc<bollard::Docker>,
     service: services::ServiceKind,
     count: Option<u64>,
 ) -> Result<()> {

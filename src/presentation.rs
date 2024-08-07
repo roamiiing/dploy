@@ -37,7 +37,7 @@ pub fn print_connection_info(connection_info: &[(ServiceKind, String)]) {
 #[inline]
 pub fn print_logs_count(service_name: &str, count: u64, is_follow: bool) {
     println!(
-        "\nShowing you {} last logs of {}",
+        "\nShowing {} last logs of {}",
         style(count).cyan(),
         style(service_name).cyan()
     );
@@ -85,6 +85,8 @@ generate_println! {
         "fill in your custom environment variables.",
     )).yellow()),
     print_network_creating(style("Creating network").cyan()),
+    print_ctrlc_received(style("\n\nReceived escape sequence. Please wait until current tasks are finished\n").red()),
+    print_ctrlc_started(style("\nStopping services because of escape sequence...\n").red()),
 }
 
 generate_println_with_label! {

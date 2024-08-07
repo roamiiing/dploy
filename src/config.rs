@@ -18,6 +18,10 @@ pub struct AppConfig {
     #[serde(default)]
     volumes: Vec<String>,
 
+    /// Paths to watch for changes
+    #[serde(default)]
+    watch: Vec<String>,
+
     /// Ports exposed by the application service
     #[serde(default)]
     ports: Vec<u16>,
@@ -46,6 +50,10 @@ impl AppConfig {
 
     pub fn volumes(&self) -> &[String] {
         &self.volumes
+    }
+
+    pub fn watch(&self) -> &[String] {
+        &self.watch
     }
 
     pub fn ports(&self) -> &[u16] {

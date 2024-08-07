@@ -32,12 +32,20 @@ impl Context {
     }
 
     pub fn container_name_of(&self, service_kind: ServiceKind) -> String {
-        let prefix = self.app_config.name();
+        let prefix = if service_kind.is_singleton() {
+            "dploysingleton"
+        } else {
+            self.app_config.name()
+        };
 
-        let suffix = match service_kind {
-            ServiceKind::Postgres => "postgres",
-            ServiceKind::Keydb => "keydb",
-            ServiceKind::App => self.app_config.name(),
+        let suffix = {
+            use ServiceKind::*;
+            match service_kind {
+                Postgres => "postgres",
+                Keydb => "keydb",
+                Proxy => "proxy",
+                App => self.app_config.name(),
+            }
         };
 
         // TODO: Allow users to customize the "default" part

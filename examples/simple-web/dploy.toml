@@ -4,5 +4,7 @@ ports = [3000]
 
 volumes = ["/app/data"]
 
+watch = ["src"]
+
 [postgres]
 expose_url_to_env = "POSTGRES_URL"

@@ -24,7 +24,7 @@ async function main() {
     }
   }
 
-  console.log("Connected to DB");
+  console.log("Connected to DB successfully");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (

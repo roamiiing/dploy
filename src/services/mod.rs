@@ -9,17 +9,34 @@ pub mod postgres;
 pub enum ServiceKind {
     /// Service being developed with dploy
     App,
+
     Postgres,
     Keydb,
+
+    /// Reverse proxy service (Caddy)
+    Proxy,
 }
 
 impl ServiceKind {
     pub fn to_string(&self) -> &str {
+        use ServiceKind::*;
+
         match self {
-            ServiceKind::App => "app",
-            ServiceKind::Postgres => "postgres",
-            ServiceKind::Keydb => "keydb",
+            App => "app",
+            Postgres => "postgres",
+            Keydb => "keydb",
+            Proxy => "proxy",
         }
+    }
+
+    /// Singleton services are deployed per server
+    pub fn is_singleton(&self) -> bool {
+        matches!(self, ServiceKind::Proxy)
+    }
+
+    /// Local services are deployed per project
+    pub fn is_local(&self) -> bool {
+        !self.is_singleton()
     }
 }
 

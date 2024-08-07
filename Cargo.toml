@@ -8,10 +8,14 @@ anyhow = "1.0.86"
 bollard = { version = "0.16.1", features = ["ssl", "chrono"] }
 clap = { version = "4.5.7", features = ["derive"] }
 console = "0.15.8"
+ctrlc = "3.4.4"
 dotenvy = "0.15.7"
 flate2 = "1.0.30"
+futures = "0.3.30"
 futures-util = "0.3.30"
 ignore = "0.4.22"
+notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
+notify-debouncer-full = "0.3.1" 
 openssh = { version = "0.10.4", features = ["native-mux"] }
 serde = { version = "1.0.203", features = ["derive"] }
 tar = "0.4.41"

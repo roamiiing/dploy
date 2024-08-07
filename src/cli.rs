@@ -30,7 +30,7 @@ pub enum Command {
     /// Deploy the application with all its dependencies to a remote server
     Deploy {
         /// Host of the remote server
-        #[clap(index = 1, default_value = "127.0.0.1")]
+        #[clap(index = 1)]
         host: String,
 
         /// Port of the remote server
@@ -49,6 +49,10 @@ pub enum Command {
         /// Run without any subcommand to start the application
         #[clap(subcommand)]
         command: Option<DeployCommand>,
+
+        /// Watch for file changes and restart the application
+        #[clap(short, long, default_value_t = false)]
+        watch: bool,
     },
 
     /// Run the application with all its dependencies locally
@@ -57,6 +61,10 @@ pub enum Command {
         /// Run without any subcommand to start the application
         #[clap(subcommand)]
         command: Option<RunCommand>,
+
+        /// Watch for file changes and restart the application
+        #[clap(short, long, default_value_t = false)]
+        watch: bool,
     },
 
     /// Run only the dependencies of the application locally
@@ -173,6 +181,16 @@ impl Command {
             Deploy { command, .. } => matches!(command, Some(DeployCommand::Stop)),
             Run { command, .. } => matches!(command, Some(RunCommand::Stop)),
             Dev { command, .. } => matches!(command, Some(DevCommand::Stop)),
+            _ => false,
+        }
+    }
+
+    pub fn watch(&self) -> bool {
+        use Command::*;
+
+        match self {
+            Run { watch, .. } => *watch,
+            _ => false,
         }
     }
 }

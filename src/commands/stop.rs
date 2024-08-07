@@ -5,9 +5,11 @@ use crate::{
     services::{self, ToContainerConfig},
 };
 
-pub async fn stop(context: &context::Context, docker: &bollard::Docker) -> Result<()> {
-    let services = services::Services::from_context(context);
-
+pub async fn stop(
+    context: &context::Context,
+    docker: &bollard::Docker,
+    services: &services::Services,
+) -> Result<()> {
     if let Some(service) = services.app() {
         stop_app_service(service, context, docker).await?;
     }

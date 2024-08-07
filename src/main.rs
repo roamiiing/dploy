@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs;
+use std::{fs, path::Path, sync::Arc};
 
 use clap::Parser;
 
@@ -45,7 +45,8 @@ async fn run_cli() -> Result<()> {
     };
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
-    let context = context::Context::new(args, app_config);
+    let context = Arc::new(context::Context::new(args, app_config));
+    let services = services::Services::from_context(&context);
 
     match context.args().command() {
         cli::Command::Dev { command, .. } => {
@@ -53,16 +54,41 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::DevCommand::Stop) => {
-                    commands::stop::stop(&context, &docker).await?;
+                    commands::stop::stop(&context, &docker, &services).await?;
                 }
                 Some(cli::DevCommand::Logs { tail, service, .. }) => {
-                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
-                        .await?;
+                    commands::logs::logs(
+                        Arc::clone(&context),
+                        Arc::new(docker),
+                        (*service).into(),
+                        tail.clone(),
+                    )
+                    .await?;
                 }
             }
+        }
+
+        // Run with watch
+        cli::Command::Run {
+            command: None,
+            watch: true,
+        } => {
+            let docker = docker::get_default_docker_client().await?;
+            commands::deploy::deploy_watch(
+                Arc::clone(&context),
+                Arc::new(docker),
+                &services,
+                &context
+                    .app_config()
+                    .watch()
+                    .iter()
+                    .map(|path| path.as_ref())
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
         }
 
         cli::Command::Run { command, .. } => {
@@ -70,16 +96,42 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::RunCommand::Stop) => {
-                    commands::stop::stop(&context, &docker).await?;
+                    commands::stop::stop(&context, &docker, &services).await?;
                 }
                 Some(cli::RunCommand::Logs { tail, service, .. }) => {
-                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
-                        .await?;
+                    commands::logs::logs(
+                        Arc::clone(&context),
+                        Arc::new(docker),
+                        (*service).into(),
+                        tail.clone(),
+                    )
+                    .await?;
                 }
             }
+        }
+
+        cli::Command::Deploy {
+            command: None,
+            watch: true,
+            ..
+        } => {
+            let (docker, session) = docker::get_docker_client_with_session(&context).await?;
+            commands::deploy::deploy_watch(
+                Arc::clone(&context),
+                Arc::new(docker),
+                &services,
+                &context
+                    .app_config()
+                    .watch()
+                    .iter()
+                    .map(|path| path.as_ref())
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
+            session.close().await?;
         }
 
         cli::Command::Deploy { command, .. } => {
@@ -87,14 +139,19 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::DeployCommand::Stop) => {
-                    commands::stop::stop(&context, &docker).await?;
+                    commands::stop::stop(&context, &docker, &services).await?;
                 }
                 Some(cli::DeployCommand::Logs { tail, service, .. }) => {
-                    commands::logs::logs(&context, &docker, (*service).into(), tail.clone())
-                        .await?;
+                    commands::logs::logs(
+                        Arc::clone(&context),
+                        Arc::new(docker),
+                        (*service).into(),
+                        tail.clone(),
+                    )
+                    .await?;
                 }
             }
 
