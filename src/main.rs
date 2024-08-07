@@ -41,6 +41,11 @@ async fn run_cli() -> Result<()> {
         presentation::print_namespace_info(namespace);
     }
 
+    let override_context = config::OverrideContext {
+        namespace: namespace.to_string(),
+        command: args.command().into(),
+    };
+
     let file_contents = match fs::read_to_string(&args.config) {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -51,7 +56,7 @@ async fn run_cli() -> Result<()> {
     };
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
 
-    let context = Arc::new(context::Context::new(args, app_config));
+    let context = Arc::new(context::Context::new(args, app_config, override_context));
     let services = services::Services::from_context(&context);
 
     match context.args().command() {
@@ -70,7 +75,7 @@ async fn run_cli() -> Result<()> {
                         Arc::clone(&context),
                         Arc::new(docker),
                         (*service).into(),
-                        tail.clone(),
+                        *tail,
                     )
                     .await?;
                 }
@@ -89,7 +94,7 @@ async fn run_cli() -> Result<()> {
                 &services,
                 &context
                     .app_config()
-                    .watch()
+                    .watch(context.override_context())
                     .iter()
                     .map(|path| path.as_ref())
                     .collect::<Vec<_>>(),
@@ -112,7 +117,7 @@ async fn run_cli() -> Result<()> {
                         Arc::clone(&context),
                         Arc::new(docker),
                         (*service).into(),
-                        tail.clone(),
+                        *tail,
                     )
                     .await?;
                 }
@@ -131,7 +136,7 @@ async fn run_cli() -> Result<()> {
                 &services,
                 &context
                     .app_config()
-                    .watch()
+                    .watch(context.override_context())
                     .iter()
                     .map(|path| path.as_ref())
                     .collect::<Vec<_>>(),
@@ -155,7 +160,7 @@ async fn run_cli() -> Result<()> {
                         Arc::clone(&context),
                         Arc::new(docker),
                         (*service).into(),
-                        tail.clone(),
+                        *tail,
                     )
                     .await?;
                 }

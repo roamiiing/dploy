@@ -121,11 +121,21 @@ impl Services {
         Ok(configs)
     }
 
-    pub fn env_vars(&self) -> Vec<(String, String)> {
+    pub fn env_vars(&self, context: &Context) -> Vec<(String, String)> {
         let mut env_vars = vec![];
 
         if let Some(postgres) = &self.postgres {
             env_vars.extend(postgres.env_vars());
+        }
+
+        if let Some(expose_namespace_to_env) = context
+            .app_config()
+            .expose_namespace_to_env(context.override_context())
+        {
+            env_vars.push((
+                expose_namespace_to_env.to_owned(),
+                context.namespace().to_owned(),
+            ));
         }
 
         env_vars

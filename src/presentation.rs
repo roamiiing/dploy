@@ -61,6 +61,15 @@ pub fn print_namespace_info(namespace: &str) {
     )
 }
 
+#[inline]
+pub fn print_image_building(label: &str, dockerfile: &str) {
+    println!(
+        "[{}] Building image from {}",
+        style(label).cyan(),
+        style(dockerfile).cyan().bold()
+    );
+}
+
 macro_rules! generate_println {
     ($($fn_name:ident($message:expr)),+ $(,)? ) => {
         $(
@@ -107,7 +116,6 @@ generate_println_with_label! {
     print_dependency_starting(style("Starting").cyan()),
     print_dependency_creating(style("Creating").cyan()),
     print_dependency_pulling(style("Pulling").cyan()),
-    print_image_building(style("Building image").cyan()),
     print_image_built(style("Image built").green()),
     print_app_container_creating(style("Creating container").cyan()),
     print_app_container_removing(style("Removing container").cyan()),

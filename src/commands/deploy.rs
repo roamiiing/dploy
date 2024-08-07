@@ -20,7 +20,6 @@ use crate::{
 
 use super::logs;
 
-const ENV_FILE_NAME: &str = ".env";
 const WATCH_POLL_INTERVAL: Duration = Duration::from_secs(1);
 const WATCH_COOLDOWN: Duration = Duration::from_secs(3);
 
@@ -29,7 +28,7 @@ pub async fn deploy(
     docker: &bollard::Docker,
     services: &services::Services,
 ) -> Result<()> {
-    if dotenvy::from_path(ENV_FILE_NAME).is_ok() {
+    if dotenvy::from_path(context.app_config().env_file(context.override_context())).is_ok() {
         presentation::print_env_file_loaded();
     } else {
         presentation::print_env_file_failed_to_load();
@@ -37,7 +36,7 @@ pub async fn deploy(
 
     if context.should_generate_env_file() {
         presentation::print_env_file_generating();
-        generate_env(&services, context)?;
+        generate_env(services, context)?;
     }
 
     if context.should_create_network() {
@@ -46,7 +45,7 @@ pub async fn deploy(
     }
 
     presentation::print_dependencies_starting();
-    deploy_dependencies(&services, context, docker).await?;
+    deploy_dependencies(services, context, docker).await?;
 
     if let Some(service) = services.app() {
         deploy_app_service(service, context, docker).await?;
@@ -148,9 +147,10 @@ async fn deploy_app_service(
 ) -> Result<()> {
     let container_config = app_service.to_container_config(context)?;
     let container_name = container_config.container_name();
+    let dockerfile = context.app_config().dockerfile(context.override_context());
 
-    presentation::print_image_building(container_name);
-    build::build_app_service_image(app_service, docker).await?;
+    presentation::print_image_building(container_name, dockerfile);
+    build::build_app_service_image(context, app_service, docker).await?;
     presentation::print_image_built(container_name);
 
     let existing_container = match docker.inspect_container(container_name, None).await {
@@ -192,14 +192,14 @@ async fn deploy_app_service(
 }
 
 fn generate_env(services: &services::Services, context: &context::Context) -> Result<()> {
-    let existing_env = get_existing_env();
+    let existing_env = get_existing_env(context.app_config().env_file(context.override_context()));
     let is_generated_first_time = existing_env.is_none();
     let existing_env = existing_env.unwrap_or_default();
 
-    let services_env_vars = services.env_vars();
+    let services_env_vars = services.env_vars(context);
     let mut own_env_vars_names = HashSet::new();
 
-    for env_name in context.app_config().env() {
+    for env_name in context.app_config().env(context.override_context()) {
         own_env_vars_names.insert(env_name.clone());
     }
 
@@ -226,7 +226,7 @@ fn generate_env(services: &services::Services, context: &context::Context) -> Re
         own_env_vars
     };
 
-    generate_env_file(&services_env_vars, &own_env_vars)?;
+    generate_env_file(&services_env_vars, &own_env_vars, context)?;
 
     if is_generated_first_time {
         presentation::print_env_file_generated();
@@ -235,9 +235,9 @@ fn generate_env(services: &services::Services, context: &context::Context) -> Re
     Ok(())
 }
 
-fn get_existing_env() -> Option<BTreeMap<String, String>> {
+fn get_existing_env(env_file_name: &str) -> Option<BTreeMap<String, String>> {
     let mut existing_env = BTreeMap::new();
-    let env_file_path = Path::new(ENV_FILE_NAME);
+    let env_file_path = Path::new(env_file_name);
 
     if !env_file_path.exists() {
         return None;
@@ -261,8 +261,10 @@ fn get_existing_env() -> Option<BTreeMap<String, String>> {
 fn generate_env_file(
     services_env_vars: &[(String, String)],
     own_env_vars: &[(String, String)],
+    context: &context::Context,
 ) -> Result<()> {
-    let mut file = std::fs::File::create(ENV_FILE_NAME)?;
+    let mut file =
+        std::fs::File::create(context.app_config().env_file(context.override_context()))?;
 
     for (key, value) in services_env_vars {
         writeln!(file, "{}={}", key, value)?;
@@ -283,7 +285,7 @@ async fn deploy_dependencies(
     context: &context::Context,
     docker: &bollard::Docker,
 ) -> Result<()> {
-    let container_configs = services.to_container_configs(&context)?;
+    let container_configs = services.to_container_configs(context)?;
 
     for config in container_configs {
         let container_name = config.container_name();

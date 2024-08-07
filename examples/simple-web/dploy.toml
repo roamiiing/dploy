@@ -6,5 +6,12 @@ volumes = ["/app/data"]
 
 watch = ["src"]
 
+expose_namespace_to_env = "DPLOY_NAMESPACE"
+
 [postgres]
 expose_url_to_env = "POSTGRES_URL"
+
+[[override]]
+for = { command = "run" }
+dockerfile = "Dockerfile.dev"
+

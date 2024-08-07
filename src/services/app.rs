@@ -21,6 +21,7 @@ pub struct AppService {
     env_vars: Vec<(String, String)>,
     ports_mapping: Vec<(u16, u16)>,
     volumes: Vec<String>,
+    dockerfile: String,
 }
 
 impl AppService {
@@ -30,33 +31,40 @@ impl AppService {
             .then(|| {
                 context
                     .app_config()
-                    .ports()
+                    .ports(context.override_context())
                     .iter()
                     .map(|port| (free_port(), *port))
                     .collect()
             })
-            .unwrap_or_else(|| vec![]);
+            .unwrap_or_else(std::vec::Vec::new);
 
         let mut env_vars = env_vars;
 
         // TODO: refactor this to store all env in context
         // this will allow to also parameterize other services
-        for env_name in context.app_config().env() {
-            env_vars.push((env_name.to_owned(), env::var(&env_name).unwrap_or_default()));
+        for env_name in context.app_config().env(context.override_context()) {
+            env_vars.push((env_name.to_owned(), env::var(env_name).unwrap_or_default()));
         }
 
         Self {
-            app_name: context.app_config().name().to_owned(),
+            app_name: context
+                .app_config()
+                .name(context.override_context())
+                .to_owned(),
             image_name: context.container_name_of(SERVICE_KIND),
             container_name: context.container_name_of(SERVICE_KIND),
             env_vars,
             ports_mapping,
             volumes: context
                 .app_config()
-                .volumes()
+                .volumes(context.override_context())
                 .iter()
                 .map(|volume| volume.to_owned())
                 .collect(),
+            dockerfile: context
+                .app_config()
+                .dockerfile(context.override_context())
+                .to_owned(),
         }
     }
 
@@ -65,12 +73,13 @@ impl AppService {
     }
 
     pub fn to_image_build_config(&self) -> image::BuildImageOptions<String> {
-        let config = image::BuildImageOptions {
-            t: self.image_name.clone(),
-            ..Default::default()
-        };
+        
 
-        config
+        image::BuildImageOptions {
+            t: self.image_name.clone(),
+            dockerfile: self.dockerfile.clone(),
+            ..Default::default()
+        }
     }
 }
 

@@ -7,7 +7,7 @@ use bollard::models;
 
 use crate::{
     cli::{Args, Command},
-    config::AppConfig,
+    config::{self, AppConfig},
     services::ServiceKind,
     utils::network::free_port,
 };
@@ -15,20 +15,35 @@ use crate::{
 #[derive(Debug)]
 pub struct Context {
     args: Args,
+
     app_config: AppConfig,
+
+    override_context: config::OverrideContext,
 }
 
 impl Context {
-    pub fn new(args: Args, app_config: AppConfig) -> Self {
-        Self { args, app_config }
+    pub fn new(
+        args: Args,
+        app_config: config::AppConfig,
+        override_context: config::OverrideContext,
+    ) -> Self {
+        Self {
+            args,
+            app_config,
+            override_context,
+        }
     }
 
     pub fn args(&self) -> &Args {
         &self.args
     }
 
+    pub fn override_context(&self) -> &config::OverrideContext {
+        &self.override_context
+    }
+
     pub fn namespace(&self) -> &str {
-        &self.args().namespace()
+        self.args().namespace()
     }
 
     pub fn app_config(&self) -> &AppConfig {
@@ -39,7 +54,7 @@ impl Context {
         let prefix = if service_kind.is_singleton() {
             "dploy-singleton"
         } else {
-            self.app_config.name()
+            self.app_config.name(&self.override_context)
         };
 
         let suffix = {
@@ -48,7 +63,7 @@ impl Context {
                 Postgres => "postgres",
                 Keydb => "keydb",
                 Proxy => "proxy",
-                App => self.app_config.name(),
+                App => self.app_config.name(&self.override_context),
             }
         };
 
@@ -137,7 +152,7 @@ impl Context {
         HostPortBinding::new(
             &self.container_name_of(service_kind),
             inner_port,
-            &self.args.command(),
+            self.args.command(),
         )
     }
 
@@ -219,8 +234,7 @@ impl HostPortBinding {
 
             let inner_port = binding.inner_port();
 
-            host_port.map(|host_port| {
-                map.insert(
+            if let Some(host_port) = host_port { map.insert(
                     // TODO: allow using not only tcp
                     format!("{inner_port}/tcp"),
                     Some(vec![models::PortBinding {
@@ -228,8 +242,7 @@ impl HostPortBinding {
                         host_port: Some(host_port.to_string()),
                         ..Default::default()
                     }]),
-                );
-            });
+                ); }
         }
 
         map

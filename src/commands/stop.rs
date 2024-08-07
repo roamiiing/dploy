@@ -15,7 +15,7 @@ pub async fn stop(
     }
 
     presentation::print_dependencies_stopping();
-    stop_dependencies(&services, context, docker).await?;
+    stop_dependencies(services, context, docker).await?;
 
     Ok(())
 }
@@ -53,7 +53,7 @@ async fn stop_dependencies(
     context: &context::Context,
     docker: &bollard::Docker,
 ) -> Result<()> {
-    let container_configs = services.to_container_configs(&context)?;
+    let container_configs = services.to_container_configs(context)?;
 
     for config in container_configs {
         let container_name = config.container_name();

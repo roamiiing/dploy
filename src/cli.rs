@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 
-use crate::{constants, services::ServiceKind};
+use crate::{config, constants, services::ServiceKind};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -82,6 +82,16 @@ pub enum Command {
         #[clap(subcommand)]
         command: Option<DevCommand>,
     },
+}
+
+impl From<&Command> for config::OverrideRuleCommand {
+    fn from(value: &Command) -> Self {
+        match value {
+            Command::Deploy { .. } => config::OverrideRuleCommand::Deploy,
+            Command::Run { .. } => config::OverrideRuleCommand::Run,
+            Command::Dev { .. } => config::OverrideRuleCommand::Dev,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -189,7 +199,6 @@ impl Command {
             Deploy { command, .. } => matches!(command, Some(DeployCommand::Stop)),
             Run { command, .. } => matches!(command, Some(RunCommand::Stop)),
             Dev { command, .. } => matches!(command, Some(DevCommand::Stop)),
-            _ => false,
         }
     }
 

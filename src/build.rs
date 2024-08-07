@@ -1,18 +1,19 @@
 use std::io::{self, Read, Seek, Write};
 
 use anyhow::Result;
-use bollard::Docker;
 use console::style;
 use futures_util::StreamExt;
 
-use crate::{services::app::AppService, utils::file::Empty};
+use crate::{context, services, utils::file::Empty};
 
 const IGNORE_FILE: &str = ".dockerignore";
-const DOCKERFILE_FILE: &str = "Dockerfile";
-const ALWAYS_INCLUDE_FILES: &[&str] = &["Dockerfile", ".dockerignore"];
 
-pub async fn build_app_service_image(app_service: &AppService, docker: &Docker) -> Result<String> {
-    let bytes = create_cwd_tar()?;
+pub async fn build_app_service_image(
+    context: &context::Context,
+    app_service: &services::app::AppService,
+    docker: &bollard::Docker,
+) -> Result<String> {
+    let bytes = create_cwd_tar(context)?;
 
     let mut stream = docker.build_image(
         app_service.to_image_build_config(),
@@ -50,7 +51,7 @@ pub async fn build_app_service_image(app_service: &AppService, docker: &Docker) 
     image_id.ok_or_else(|| anyhow::anyhow!("Failed to build image"))
 }
 
-fn create_cwd_tar() -> Result<Vec<u8>> {
+fn create_cwd_tar(context: &context::Context) -> Result<Vec<u8>> {
     let mut bytes = Vec::<u8>::new();
     let mut archive = tar::Builder::new(&mut bytes);
 
@@ -66,7 +67,7 @@ fn create_cwd_tar() -> Result<Vec<u8>> {
         archive.append_path(entry.path())?;
     }
 
-    for file_name in ALWAYS_INCLUDE_FILES {
+    for file_name in get_always_include_files(context) {
         let _ = archive.append_path(file_name);
     }
 
@@ -101,4 +102,10 @@ fn create_walker() -> ignore::Walk {
         .git_ignore(false)
         .git_global(false)
         .build()
+}
+
+fn get_always_include_files(context: &context::Context) -> Vec<String> {
+    let dockerfile = context.app_config().dockerfile(context.override_context());
+
+    vec![dockerfile.to_owned(), IGNORE_FILE.to_owned()]
 }

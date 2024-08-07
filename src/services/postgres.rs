@@ -31,18 +31,21 @@ pub struct PostgresService {
 
 impl PostgresService {
     pub fn from_context(context: &Context) -> Option<Self> {
-        context.app_config().postgres().map(|config| Self {
-            expose_url_to_env: config.expose_url_to_env().map(ToOwned::to_owned),
+        context
+            .app_config()
+            .postgres(context.override_context())
+            .map(|config| Self {
+                expose_url_to_env: config.expose_url_to_env().map(ToOwned::to_owned),
 
-            database_name: config
-                .database_name()
-                .unwrap_or(context.app_config().name())
-                .to_owned(),
-            database_user: DEFAULT_USER.to_owned(),
-            database_password: DEFAULT_PASSWORD.to_owned(),
+                database_name: config
+                    .database_name()
+                    .unwrap_or(context.app_config().name(context.override_context()))
+                    .to_owned(),
+                database_user: DEFAULT_USER.to_owned(),
+                database_password: DEFAULT_PASSWORD.to_owned(),
 
-            binding: context.host_port_binding_of(SERVICE_KIND, DEFAULT_PORT),
-        })
+                binding: context.host_port_binding_of(SERVICE_KIND, DEFAULT_PORT),
+            })
     }
 
     pub fn construct_url(&self, host: &str, port: u16) -> String {
