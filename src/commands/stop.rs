@@ -17,6 +17,9 @@ pub async fn stop(
     presentation::print_dependencies_stopping();
     stop_dependencies(services, context, docker).await?;
 
+    presentation::print_post_down_running();
+    services.post_down(docker).await?;
+
     Ok(())
 }
 

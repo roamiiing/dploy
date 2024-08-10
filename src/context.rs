@@ -287,7 +287,6 @@ impl HostPortBinding {
                     Some(vec![models::PortBinding {
                         host_ip: Some(host_host.to_owned()),
                         host_port: Some(host_port.to_string()),
-                        ..Default::default()
                     }]),
                 );
             }

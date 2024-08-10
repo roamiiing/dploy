@@ -36,6 +36,7 @@ impl Args {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Deploy the application with all its dependencies to a remote server
+    #[clap(visible_alias = "D")]
     Deploy {
         /// Host of the remote server
         #[clap(index = 1)]
@@ -64,6 +65,7 @@ pub enum Command {
     },
 
     /// Run the application with all its dependencies locally
+    #[clap(visible_alias = "r")]
     Run {
         /// Subcommand
         /// Run without any subcommand to start the application
@@ -76,6 +78,7 @@ pub enum Command {
     },
 
     /// Run only the dependencies of the application locally
+    #[clap(visible_alias = "d")]
     Dev {
         /// Subcommand
         /// Run without any subcommand to start the application
@@ -97,9 +100,11 @@ impl From<&Command> for config::OverrideRuleCommand {
 #[derive(Debug, Subcommand)]
 pub enum DevCommand {
     /// Stop the application
+    #[clap(visible_alias = "s")]
     Stop,
 
     /// Get logs of the specified service
+    #[clap(visible_alias = "l")]
     Logs {
         /// Number of logs to get. Omit to get 20 last logs + follow real time logs
         #[clap(short, long)]
@@ -128,9 +133,11 @@ impl From<DevLogsService> for ServiceKind {
 #[derive(Debug, Subcommand)]
 pub enum RunCommand {
     /// Stop the application
+    #[clap(visible_alias = "s")]
     Stop,
 
     /// Get logs of application container
+    #[clap(visible_alias = "l")]
     Logs {
         /// Number of logs to get. Omit to get 20 last logs + follow real time logs
         #[clap(short, long)]
@@ -161,9 +168,11 @@ impl From<RunLogsService> for ServiceKind {
 #[derive(Debug, Subcommand)]
 pub enum DeployCommand {
     /// Stop the application
+    #[clap(visible_alias = "s")]
     Stop,
 
     /// Get logs of application container
+    #[clap(visible_alias = "l")]
     Logs {
         /// Number of logs to get. Omit to get 20 last logs + follow realtime logs
         #[clap(short, long)]

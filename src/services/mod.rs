@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::Result;
 use bollard::container;
 
@@ -20,17 +22,6 @@ pub enum ServiceKind {
 }
 
 impl ServiceKind {
-    pub fn to_string(&self) -> &str {
-        use ServiceKind::*;
-
-        match self {
-            App => "app",
-            Postgres => "postgres",
-            Keydb => "keydb",
-            Proxy => "proxy",
-        }
-    }
-
     /// Singleton services are deployed per server
     pub fn is_singleton(&self) -> bool {
         matches!(self, ServiceKind::Proxy)
@@ -39,6 +30,17 @@ impl ServiceKind {
     /// Local services are deployed per project
     pub fn is_local(&self) -> bool {
         !self.is_singleton()
+    }
+}
+
+impl fmt::Display for ServiceKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ServiceKind::App => write!(f, "app"),
+            ServiceKind::Postgres => write!(f, "postgres"),
+            ServiceKind::Keydb => write!(f, "keydb"),
+            ServiceKind::Proxy => write!(f, "proxy"),
+        }
     }
 }
 
@@ -90,7 +92,7 @@ pub trait ConnectionInfo {
 pub struct Services {
     app: Option<app::AppService>,
     postgres: Option<postgres::PostgresService>,
-    proxy: Option<proxy::ProxyService>,
+    proxy: proxy::ProxyService,
 }
 
 impl Services {
@@ -107,10 +109,7 @@ impl Services {
             .should_create_app_service()
             .then(|| app::AppService::from_context(context, app_service_env_vars));
 
-        let proxy = context
-            .should_create_proxy_service()
-            .then(|| proxy::ProxyService::from_context(context))
-            .flatten();
+        let proxy = proxy::ProxyService::from_context(context);
 
         Self {
             app,
@@ -130,29 +129,25 @@ impl Services {
             configs.push(postgres.to_container_config(context)?);
         }
 
-        if let Some(proxy) = &self.proxy {
-            if context.should_create_proxy_service() {
-                configs.push(proxy.to_container_config(context)?);
-            }
+        if context.should_create_proxy_service() {
+            configs.push(self.proxy.to_container_config(context)?);
         }
 
         Ok(configs)
     }
 
-    pub async fn post_up(
-        &self,
-        context: &Context,
-        docker: &bollard::Docker,
-        session: Option<&openssh::Session>,
-    ) -> Result<()> {
-        match (&self.proxy, session) {
-            (Some(proxy), Some(session)) => {
-                presentation::print_proxy_updating(proxy.name());
-                proxy.post_up(context, session, docker).await?;
-                presentation::print_proxy_success(proxy.name());
-            }
-            _ => (),
-        }
+    /// These actions run after all services have been created
+    pub async fn post_up(&self, docker: &bollard::Docker) -> Result<()> {
+        presentation::print_proxy_updating(self.proxy.name());
+        self.proxy.post_up(docker).await?;
+        presentation::print_proxy_success(self.proxy.name());
+
+        Ok(())
+    }
+
+    /// These actions run after all services have been removed
+    pub async fn post_down(&self, docker: &bollard::Docker) -> Result<()> {
+        self.proxy.post_down(docker).await?;
 
         Ok(())
     }

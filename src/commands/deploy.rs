@@ -10,15 +10,13 @@ use futures_util::TryStreamExt;
 use notify::Watcher;
 
 use crate::{
-    build,
+    build, commands,
     commands::stop::stop,
     context, network,
     prelude::*,
     presentation,
     services::{self, ToContainerConfig},
 };
-
-use super::logs;
 
 const WATCH_POLL_INTERVAL: Duration = Duration::from_secs(1);
 const WATCH_COOLDOWN: Duration = Duration::from_secs(3);
@@ -27,7 +25,6 @@ pub async fn deploy(
     context: &context::Context,
     docker: &bollard::Docker,
     services: &services::Services,
-    session: Option<&openssh::Session>,
 ) -> Result<()> {
     if dotenvy::from_path(context.app_config().env_file(context.override_context())).is_ok() {
         presentation::print_env_file_loaded();
@@ -53,7 +50,7 @@ pub async fn deploy(
     }
 
     presentation::print_post_up_running();
-    services.post_up(context, docker, session).await?;
+    services.post_up(docker).await?;
 
     if context.should_print_connection_info() {
         let connection_info = services.connection_info();
@@ -67,15 +64,14 @@ pub async fn deploy_watch(
     context: Arc<context::Context>,
     docker: Arc<bollard::Docker>,
     services: &services::Services,
-    session: Option<&openssh::Session>,
     watch_paths: &[&Path],
 ) -> Result<()> {
     if watch_paths.is_empty() {
         bail!("Called with --watch flag but no paths were provided. Please provide at least one path to watch in the dploy.toml");
     }
 
-    deploy(&context, &docker, services, session).await?;
-    let mut handle = tokio::spawn(logs::logs(
+    deploy(&context, &docker, services).await?;
+    let mut handle = tokio::spawn(commands::logs::logs(
         Arc::clone(&context),
         Arc::clone(&docker),
         services::ServiceKind::App,
@@ -108,32 +104,30 @@ pub async fn deploy_watch(
             break;
         }
 
-        if let Ok(res) = rx.try_recv() {
-            if let Ok(events) = res {
-                if Instant::now() - last_deploy < WATCH_COOLDOWN
-                    || events.is_empty()
-                    || !events.iter().any(|event| event.kind.is_modify())
-                {
-                    continue;
-                }
-
-                presentation::print_watch_files_changed();
-
-                handle.abort();
-
-                if let Some(service) = services.app() {
-                    deploy_app_service(service, &context, &docker).await?;
-                }
-
-                handle = tokio::spawn(logs::logs(
-                    Arc::clone(&context),
-                    Arc::clone(&docker),
-                    services::ServiceKind::App,
-                    None,
-                ));
-
-                last_deploy = Instant::now();
+        if let Ok(Ok(events)) = rx.try_recv() {
+            if Instant::now() - last_deploy < WATCH_COOLDOWN
+                || events.is_empty()
+                || !events.iter().any(|event| event.kind.is_modify())
+            {
+                continue;
             }
+
+            presentation::print_watch_files_changed();
+
+            handle.abort();
+
+            if let Some(service) = services.app() {
+                deploy_app_service(service, &context, &docker).await?;
+            }
+
+            handle = tokio::spawn(commands::logs::logs(
+                Arc::clone(&context),
+                Arc::clone(&docker),
+                services::ServiceKind::App,
+                None,
+            ));
+
+            last_deploy = Instant::now();
         }
     }
 
@@ -208,7 +202,7 @@ fn generate_env(services: &services::Services, context: &context::Context) -> Re
         own_env_vars_names.insert(env_name.clone());
     }
 
-    for (env_name, _) in &existing_env {
+    for env_name in existing_env.keys() {
         own_env_vars_names.insert(env_name.clone());
     }
 

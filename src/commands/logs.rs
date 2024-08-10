@@ -2,7 +2,7 @@ use std::{io::Write, sync::Arc};
 
 use futures_util::TryStreamExt;
 
-use crate::{context, prelude::*, presentation, services};
+use crate::{context, docker, prelude::*, presentation, services};
 
 pub async fn logs(
     context: Arc<context::Context>,
@@ -12,29 +12,11 @@ pub async fn logs(
 ) -> Result<()> {
     let logs_count = count.unwrap_or(20);
     let should_follow = count.is_none();
-
     let container_name = context.container_name_of(service);
 
-    presentation::print_logs_count(&container_name, logs_count, should_follow);
-
-    let existing_container = match docker.inspect_container(&container_name, None).await {
-        Ok(container) => Some(container),
-        Err(bollard::errors::Error::DockerResponseServerError {
-            status_code: 404, ..
-        }) => None,
-        Err(e) => return Err(e.into()),
-    };
-
-    let Some(existing_container) = existing_container else {
-        bail!("Your app is not running. Deploy it first");
-    };
-
-    if !existing_container
-        .state
-        .and_then(|state| state.running)
-        .unwrap_or(false)
-    {
-        bail!("Your app is not running. Deploy it first");
+    let is_running = docker::check_container_running(&*docker, &container_name).await?;
+    if !is_running {
+        bail!("Cannot show logs because the container is not running. Deploy it first.");
     }
 
     let logs = docker.logs(
@@ -47,6 +29,8 @@ pub async fn logs(
             ..Default::default()
         }),
     );
+
+    presentation::print_logs_count(&container_name, logs_count, should_follow);
 
     logs.try_for_each(|chunk| async {
         let mut stdout = std::io::stdout();

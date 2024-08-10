@@ -65,7 +65,7 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker, &services, None).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::DevCommand::Stop) => {
                     commands::stop::stop(&context, &docker, &services).await?;
@@ -92,7 +92,6 @@ async fn run_cli() -> Result<()> {
                 Arc::clone(&context),
                 Arc::new(docker),
                 &services,
-                None,
                 &context
                     .app_config()
                     .watch(context.override_context())
@@ -108,7 +107,7 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker, &services, None).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::RunCommand::Stop) => {
                     commands::stop::stop(&context, &docker, &services).await?;
@@ -135,7 +134,6 @@ async fn run_cli() -> Result<()> {
                 Arc::clone(&context),
                 Arc::new(docker),
                 &services,
-                Some(&session),
                 &context
                     .app_config()
                     .watch(context.override_context())
@@ -152,7 +150,7 @@ async fn run_cli() -> Result<()> {
 
             match command {
                 None => {
-                    commands::deploy::deploy(&context, &docker, &services, Some(&session)).await?;
+                    commands::deploy::deploy(&context, &docker, &services).await?;
                 }
                 Some(cli::DeployCommand::Stop) => {
                     commands::stop::stop(&context, &docker, &services).await?;

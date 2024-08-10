@@ -30,7 +30,7 @@ pub fn print_connection_info(connection_info: &[(ServiceKind, String)]) {
     println!("{}", style("\nConnection info:\n").cyan());
 
     for (service_kind, connection) in connection_info {
-        println!("{}: {}", service_kind.to_string(), style(connection).cyan());
+        println!("{}: {}", service_kind, style(connection).cyan());
     }
 }
 
@@ -107,6 +107,7 @@ generate_println! {
     print_ctrlc_started(style("\nStopping services because of escape sequence...\n").red()),
     print_watch_files_changed(style("\nFiles changed. Restarting...").cyan()),
     print_post_up_running(style("Post up actions running").cyan()),
+    print_post_down_running(style("Post down actions running").cyan()),
 }
 
 generate_println_with_label! {
