@@ -79,6 +79,12 @@ async fn run_cli() -> Result<()> {
                     )
                     .await?;
                 }
+                Some(cli::DevCommand::Exec {
+                    service, command, ..
+                }) => {
+                    let args = commands::exec::ExecArgs::new((*service).into(), command.clone());
+                    commands::exec::exec(&context, &docker, &args).await?;
+                }
             }
         }
 
@@ -120,6 +126,12 @@ async fn run_cli() -> Result<()> {
                         *tail,
                     )
                     .await?;
+                }
+                Some(cli::RunCommand::Exec {
+                    service, command, ..
+                }) => {
+                    let args = commands::exec::ExecArgs::new((*service).into(), command.clone());
+                    commands::exec::exec(&context, &docker, &args).await?;
                 }
             }
         }
@@ -163,6 +175,12 @@ async fn run_cli() -> Result<()> {
                         *tail,
                     )
                     .await?;
+                }
+                Some(cli::DeployCommand::Exec {
+                    service, command, ..
+                }) => {
+                    let args = commands::exec::ExecArgs::new((*service).into(), command.clone());
+                    commands::exec::exec(&context, &docker, &args).await?;
                 }
             }
 

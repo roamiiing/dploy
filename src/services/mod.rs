@@ -3,7 +3,7 @@ use std::fmt;
 use anyhow::Result;
 use bollard::container;
 
-use crate::{context::Context, presentation};
+use crate::context::Context;
 
 pub mod app;
 pub mod postgres;
@@ -138,9 +138,7 @@ impl Services {
 
     /// These actions run after all services have been created
     pub async fn post_up(&self, docker: &bollard::Docker) -> Result<()> {
-        presentation::print_proxy_updating(self.proxy.name());
         self.proxy.post_up(docker).await?;
-        presentation::print_proxy_success(self.proxy.name());
 
         Ok(())
     }

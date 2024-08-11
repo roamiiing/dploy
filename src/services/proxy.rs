@@ -25,6 +25,7 @@ const SERVICE_KIND: services::ServiceKind = services::ServiceKind::Proxy;
 
 pub struct ProxyService {
     name: String,
+    should_run: bool,
     app_service_container_name: String,
     bindings: Vec<context::HostPortBinding>,
     configs: Vec<ProxyServiceConfig>,
@@ -55,15 +56,27 @@ impl ProxyService {
             })
             .collect();
 
+        let should_run = context.should_create_proxy_service();
+
         Self {
             name,
             app_service_container_name,
             bindings,
             configs,
+            should_run,
         }
     }
 
     pub async fn post_up(&self, docker: &bollard::Docker) -> Result<()> {
+        if !self.should_run {
+            return Ok(());
+        }
+
+        let is_running = docker::check_container_running(docker, &self.name).await?;
+        if !is_running {
+            return Ok(());
+        }
+
         // in case no proxy configs were specified, we need to remove the configs
         // in order to close the proxy to the app (in case user deleted it without
         // stopping)

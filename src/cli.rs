@@ -114,6 +114,18 @@ pub enum DevCommand {
         #[clap(short, long)]
         service: DevLogsService,
     },
+
+    /// Execute a command in the application container
+    #[clap(visible_alias = "e")]
+    Exec {
+        /// Command to execute
+        #[clap(index = 1)]
+        command: String,
+
+        /// Service to get logs from
+        #[clap(short, long)]
+        service: DevLogsService,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ValueEnum)]
@@ -142,6 +154,18 @@ pub enum RunCommand {
         /// Number of logs to get. Omit to get 20 last logs + follow real time logs
         #[clap(short, long)]
         tail: Option<u64>,
+
+        /// Service to get logs from
+        #[clap(short, long, default_value = "app")]
+        service: RunLogsService,
+    },
+
+    /// Execute a command in the application container
+    #[clap(visible_alias = "e")]
+    Exec {
+        /// Command to execute
+        #[clap(index = 1)]
+        command: String,
 
         /// Service to get logs from
         #[clap(short, long, default_value = "app")]
@@ -177,6 +201,18 @@ pub enum DeployCommand {
         /// Number of logs to get. Omit to get 20 last logs + follow realtime logs
         #[clap(short, long)]
         tail: Option<u64>,
+
+        /// Service to get logs from
+        #[clap(short, long, default_value = "app")]
+        service: DeployLogsService,
+    },
+
+    /// Execute a command in the application container
+    #[clap(visible_alias = "e")]
+    Exec {
+        /// Command to execute
+        #[clap(index = 1)]
+        command: String,
 
         /// Service to get logs from
         #[clap(short, long, default_value = "app")]

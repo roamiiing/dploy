@@ -129,4 +129,5 @@ generate_println_with_label! {
     print_remote_host_success(style("Success").green()),
     print_proxy_updating(style("Updating").cyan()),
     print_proxy_success(style("Success").green()),
+    print_command_executing(style("Executing command\n").cyan()),
 }
