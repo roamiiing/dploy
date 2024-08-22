@@ -92,6 +92,11 @@ impl ProxyService {
     }
 
     pub async fn post_down(&self, docker: &bollard::Docker) -> Result<()> {
+        let is_running = docker::check_container_running(docker, &self.name).await?;
+        if !is_running {
+            return Ok(());
+        }
+
         self.delete_configs(docker).await?;
         self.reload_caddy(docker).await?;
 
