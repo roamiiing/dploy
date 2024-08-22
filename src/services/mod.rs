@@ -136,6 +136,16 @@ impl Services {
         Ok(configs)
     }
 
+    pub fn to_stop_container_configs(&self, context: &Context) -> Result<Vec<ContainerConfig>> {
+        let mut configs = vec![];
+
+        if let Some(postgres) = &self.postgres {
+            configs.push(postgres.to_container_config(context)?);
+        }
+
+        Ok(configs)
+    }
+
     /// These actions run after all services have been created
     pub async fn post_up(&self, docker: &bollard::Docker) -> Result<()> {
         self.proxy.post_up(docker).await?;
