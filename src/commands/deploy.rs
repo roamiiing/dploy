@@ -309,6 +309,10 @@ async fn deploy_dependencies(
         presentation::print_dependency_creating(container_name);
 
         if existing_container.is_some() {
+            if docker::check_container_running(docker, container_name).await? {
+                docker.stop_container(container_name, None).await?;
+            }
+
             docker.remove_container(container_name, None).await?;
         }
 
