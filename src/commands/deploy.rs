@@ -1,25 +1,24 @@
 use std::{
     collections::{BTreeMap, HashSet},
+    fs,
     io::Write,
     path::Path,
     sync::Arc,
-    time::{Duration, Instant},
+    time,
 };
 
 use futures_util::TryStreamExt;
 use notify::Watcher;
 
 use crate::{
-    build, commands,
-    commands::stop::stop,
-    context, network,
+    build, commands, context, docker, network,
     prelude::*,
     presentation,
     services::{self, ToContainerConfig},
 };
 
-const WATCH_POLL_INTERVAL: Duration = Duration::from_secs(1);
-const WATCH_COOLDOWN: Duration = Duration::from_secs(3);
+const WATCH_POLL_INTERVAL: time::Duration = time::Duration::from_secs(1);
+const WATCH_COOLDOWN: time::Duration = time::Duration::from_secs(3);
 
 pub async fn deploy(
     context: &context::Context,
@@ -96,7 +95,7 @@ pub async fn deploy_watch(
         tx_abort.send(()).unwrap();
     })?;
 
-    let mut last_deploy = Instant::now();
+    let mut last_deploy = time::Instant::now();
 
     // don't care about blocking here
     loop {
@@ -105,7 +104,7 @@ pub async fn deploy_watch(
         }
 
         if let Ok(Ok(events)) = rx.try_recv() {
-            if Instant::now() - last_deploy < WATCH_COOLDOWN
+            if time::Instant::now() - last_deploy < WATCH_COOLDOWN
                 || events.is_empty()
                 || !events.iter().any(|event| event.kind.is_modify())
             {
@@ -127,14 +126,13 @@ pub async fn deploy_watch(
                 None,
             ));
 
-            last_deploy = Instant::now();
+            last_deploy = time::Instant::now();
         }
     }
 
     handle.abort();
 
     presentation::print_ctrlc_started();
-    stop(&context, &docker, services).await?;
 
     Ok(())
 }
@@ -262,8 +260,7 @@ fn generate_env_file(
     own_env_vars: &[(String, String)],
     context: &context::Context,
 ) -> Result<()> {
-    let mut file =
-        std::fs::File::create(context.app_config().env_file(context.override_context()))?;
+    let mut file = fs::File::create(context.app_config().env_file(context.override_context()))?;
 
     for (key, value) in services_env_vars {
         writeln!(file, "{}={}", key, value)?;
@@ -296,6 +293,7 @@ async fn deploy_dependencies(
             .create_image(
                 Some(bollard::image::CreateImageOptions {
                     from_image: image_name,
+                    // TODO: allow users to set tag
                     tag: "latest",
                     ..Default::default()
                 }),
@@ -305,43 +303,24 @@ async fn deploy_dependencies(
             .try_collect::<Vec<_>>()
             .await?;
 
-        let image_info = docker
-            // TODO: allow users to customize version
-            .inspect_image(format!("{}:latest", image_name).as_str())
-            .await?;
-        let existing_container = match docker.inspect_container(container_name, None).await {
-            Ok(container) => Some(container),
-            Err(bollard::errors::Error::DockerResponseServerError {
-                status_code: 404, ..
-            }) => None,
-            Err(e) => return Err(e.into()),
-        };
+        // TODO: check here if container exists and version is the same
+        let existing_container = docker::inspect_container(docker, container_name).await?;
 
-        if should_recreate_dependency_container(&image_info, existing_container.as_ref()) {
-            presentation::print_dependency_creating(container_name);
+        presentation::print_dependency_creating(container_name);
 
-            if existing_container.is_some() {
-                docker
-                    .remove_container(
-                        container_name,
-                        Some(bollard::container::RemoveContainerOptions {
-                            force: true,
-                            ..Default::default()
-                        }),
-                    )
-                    .await?;
-            }
-
-            docker
-                .create_container(
-                    Some(bollard::container::CreateContainerOptions {
-                        name: container_name,
-                        platform: None,
-                    }),
-                    config.clone(),
-                )
-                .await?;
+        if existing_container.is_some() {
+            docker.remove_container(container_name, None).await?;
         }
+
+        docker
+            .create_container(
+                Some(bollard::container::CreateContainerOptions {
+                    name: container_name,
+                    ..Default::default()
+                }),
+                config.clone(),
+            )
+            .await?;
 
         presentation::print_dependency_starting(container_name);
         docker
@@ -355,23 +334,4 @@ async fn deploy_dependencies(
     }
 
     Ok(())
-}
-
-fn should_recreate_dependency_container(
-    image_info: &bollard::models::ImageInspect,
-    container_info: Option<&bollard::models::ContainerInspectResponse>,
-) -> bool {
-    let Some(image_id) = &image_info.id else {
-        return true;
-    };
-
-    let Some(container_image) = container_info.and_then(|info| info.image.as_ref()) else {
-        return true;
-    };
-
-    if container_image == image_id {
-        return false;
-    }
-
-    true
 }

@@ -10,7 +10,7 @@ use crate::{
     config::{self, AppConfig},
     constants,
     services::{self, ServiceKind},
-    utils::network::free_port,
+    utils,
 };
 
 #[derive(Debug)]
@@ -222,13 +222,19 @@ impl Context {
     }
 }
 
+// TODO: some really complex logic going on here
 #[derive(Clone, Debug)]
 pub struct HostPortBinding {
+    /// The port for communication of the app service with this service
     inner_port: u16,
     inner_host: String,
 
+    /// The port for communication of the host with this service
     host_port: Option<u16>,
     host_host: String,
+
+    /// The port inside the container
+    internal_port: u16,
 }
 
 impl HostPortBinding {
@@ -236,7 +242,7 @@ impl HostPortBinding {
         use Command::*;
 
         let host_port = match command {
-            Dev { .. } | Run { .. } => Some(free_port()),
+            Dev { .. } | Run { .. } => Some(utils::network::free_port()),
             _ => None,
         };
 
@@ -257,6 +263,7 @@ impl HostPortBinding {
             inner_host: inner_host.to_owned(),
             host_port,
             host_host: host_host.to_owned(),
+            internal_port,
         }
     }
 
@@ -266,6 +273,7 @@ impl HostPortBinding {
             inner_host: inner_host.to_owned(),
             host_port: Some(host_port),
             host_host: host_host.to_owned(),
+            internal_port: inner_port,
         }
     }
 
@@ -277,13 +285,12 @@ impl HostPortBinding {
         for binding in bindings {
             let host_port = binding.host_port();
             let host_host = binding.host_host();
-
-            let inner_port = binding.inner_port();
+            let internal_port = binding.internal_port();
 
             if let Some(host_port) = host_port {
                 map.insert(
                     // TODO: allow using not only tcp
-                    format!("{inner_port}/tcp"),
+                    format!("{internal_port}/tcp"),
                     Some(vec![models::PortBinding {
                         host_ip: Some(host_host.to_owned()),
                         host_port: Some(host_port.to_string()),
@@ -313,6 +320,10 @@ impl HostPortBinding {
 
     pub fn host_host(&self) -> &str {
         &self.host_host
+    }
+
+    pub fn internal_port(&self) -> u16 {
+        self.internal_port
     }
 }
 

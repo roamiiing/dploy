@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{fs, sync::Arc};
+use std::{fs, path, sync::Arc};
 
 use clap::Parser;
 
@@ -55,7 +55,15 @@ async fn run_cli() -> Result<()> {
         Err(error) => return Err(error.into()),
     };
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
-
+    //
+    // // mutate CWD to the location where the config file is
+    // std::env::set_current_dir(
+    //     path::PathBuf::from(&args.config)
+    //         .parent()
+    //         .expect("Invalid config path"),
+    // )
+    // .expect("Invalid config path");
+    //
     let context = Arc::new(context::Context::new(args, app_config, override_context));
     let services = services::Services::from_context(&context);
 
