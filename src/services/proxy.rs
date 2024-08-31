@@ -198,7 +198,7 @@ impl services::ToContainerConfig for ProxyService {
                     "sh",
                     "-c",
                     &format!(
-                        r#"echo "{GENERAL_CADDYFILE_CONTENTS}" > {config_file} caddy run --config {config_file} --adapter caddyfile"#,
+                        r#"echo "{GENERAL_CADDYFILE_CONTENTS}" > {config_file} && caddy run --config {config_file} --adapter caddyfile"#,
                     ),
                 ]
                 .into_iter()

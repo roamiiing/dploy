@@ -73,8 +73,6 @@ impl AppService {
     }
 
     pub fn to_image_build_config(&self) -> image::BuildImageOptions<String> {
-        
-
         image::BuildImageOptions {
             t: self.image_name.clone(),
             dockerfile: self.dockerfile.clone(),
@@ -102,7 +100,7 @@ impl ToContainerConfig for AppService {
                         // TODO: DPLY-18 support not only tcp
                         format!("{}/tcp", container_port),
                         Some(vec![models::PortBinding {
-                            host_ip: Some("0.0.0.0".to_owned()),
+                            host_ip: Some("127.0.0.1".to_owned()),
                             host_port: Some(format!("{}", host_port)),
                         }]),
                     )
