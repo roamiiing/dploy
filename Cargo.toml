@@ -1,6 +1,6 @@
 [package]
 name = "dploy"
-version = "0.0.12"
+version = "0.0.13"
 edition = "2021"
 
 [dependencies]
@@ -15,14 +15,20 @@ futures = "0.3.30"
 futures-util = "0.3.30"
 ignore = "0.4.22"
 itertools = "0.13.0"
-notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
-notify-debouncer-full = "0.3.1" 
+notify = { version = "6.1.1", default-features = false, features = [
+  "macos_kqueue",
+] }
+notify-debouncer-full = "0.3.1"
 openssh = { version = "0.10.4", features = ["native-mux"] }
 serde = { version = "1.0.203", features = ["derive"] }
 tar = "0.4.41"
 tempfile = "3.10.1"
 termion = "4.0.2"
-tokio = { version = "1.38.0", features = ["rt-multi-thread", "tokio-macros", "macros"] }
+tokio = { version = "1.38.0", features = [
+  "rt-multi-thread",
+  "tokio-macros",
+  "macros",
+] }
 toml = "0.8.14"
 
 [profile.release]
