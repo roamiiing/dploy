@@ -6,6 +6,11 @@
 # Define current arch
 ARCH=$(uname -m)
 OSTYPE=$(uname -s)
+RELEASE=${1:-"latest"}
+
+if [ "$RELEASE" != "latest" ]; then
+  RELEASE="tag/v$RELEASE"
+fi
 
 case "$ARCH" in
   x86_64)
@@ -38,7 +43,7 @@ BIN_FOLDER_NAME=bins-$GREP_ARCH_PATTERN-$GREP_OS_PATTERN
 GREP_PATTERN="$BIN_FOLDER_NAME.tar.gz"
 
 DOWNLOAD_URL=$(
-	curl -s https://api.github.com/repos/roamiiing/dploy/releases/latest \
+	curl -s "https://api.github.com/repos/roamiiing/dploy/releases/${RELEASE}" \
 	| grep -o "https.*$GREP_PATTERN" \
 )
 

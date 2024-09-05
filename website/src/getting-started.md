@@ -6,9 +6,13 @@
 ## Installation
 
 To install dploy, run the following command:
-
 ```bash
 curl -o- https://dploy.roamiiing.ru/install.sh | sh
+```
+
+If you need to install a specific dploy version, use `-s` sh flag to provide a version arg, e.g:
+```bash
+curl -o- https://dploy.roamiiing.ru/install.sh | sh -s v0.0.10
 ```
 
 ## Configuration
