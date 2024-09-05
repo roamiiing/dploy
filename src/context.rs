@@ -122,6 +122,7 @@ impl Context {
         use Command::*;
 
         matches!(self.args.command(), Deploy { command: None, .. })
+            && self.app_config().proxy(self.override_context()).len() > 0
     }
 
     pub fn should_generate_env_file(&self) -> bool {
