@@ -24,7 +24,12 @@ pub async fn build_app_service_image(
     let mut image_id = None;
 
     while let Some(info) = stream.next().await {
-        // TODO: log info from build image
+        if let Some(stream_err) = info.as_ref().err() {
+            format!("{}\n", stream_err);
+
+            return Err(anyhow::anyhow!("Failed to build image"))
+        }
+
         match info? {
             bollard::models::BuildInfo {
                 aux: Some(image_id_inner),
