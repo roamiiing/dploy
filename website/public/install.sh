@@ -6,10 +6,12 @@
 # Define current arch
 ARCH=$(uname -m)
 OSTYPE=$(uname -s)
-RELEASE=${1:-"latest"}
+RELEASE_VERSION=${1:-"latest"}
 
-if [ "$RELEASE" != "latest" ]; then
-  RELEASE="tag/v$RELEASE"
+RELEASE_PATH="releases/latest"
+
+if [ "$RELEASE_VERSION" != "latest" ]; then
+  RELEASE_PATH="releases/tags/$RELEASE_VERSION"
 fi
 
 case "$ARCH" in
@@ -41,11 +43,16 @@ esac
 BIN_FOLDER_NAME=bins-$GREP_ARCH_PATTERN-$GREP_OS_PATTERN
 
 GREP_PATTERN="$BIN_FOLDER_NAME.tar.gz"
+RELEASE_ENDPOINT="https://api.github.com/repos/roamiiing/dploy/${RELEASE_PATH}"
 
-DOWNLOAD_URL=$(
-	curl -s "https://api.github.com/repos/roamiiing/dploy/releases/${RELEASE}" \
-	| grep -o "https.*$GREP_PATTERN" \
-)
+CURL_RESPONSE_CODE=$(curl -o /dev/null -s -w "%{http_code}" $RELEASE_ENDPOINT)
+
+if [ "$CURL_RESPONSE_CODE" != "200" ]; then
+  echo "Failed to fetch release, status code: $CURL_RESPONSE_CODE"
+  exit 1
+fi
+
+DOWNLOAD_URL=$(curl -s $RELEASE_ENDPOINT | grep -o "https.*$GREP_PATTERN")
 
 echo "Downloading binary from $DOWNLOAD_URL"
 
