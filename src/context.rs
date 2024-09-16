@@ -134,7 +134,7 @@ impl Context {
     pub fn should_create_network(&self) -> bool {
         use Command::*;
 
-        matches!(self.args.command(), Dev { .. } | Run { .. })
+        matches!(self.args.command(), Run { .. } | Deploy { .. })
     }
 
     pub fn manual_mount(&self, outer_path: &str, inner_path: &str) -> models::Mount {
