@@ -3,13 +3,14 @@ const express = require("express");
 
 const app = express();
 
-const { POSTGRES_URL, NODE_ENV } = process.env;
+const { POSTGRES_URL, NODE_ENV, EXAMPLE_ENV } = process.env;
 
 if (!POSTGRES_URL) {
   throw new Error("POSTGRES_URL is not set");
 }
 
 console.log(`Running in ${NODE_ENV} mode.`);
+console.log(`Example env: ${EXAMPLE_ENV}`);
 
 const pool = new pg.Pool({
   connectionString: POSTGRES_URL,

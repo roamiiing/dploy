@@ -121,7 +121,18 @@ impl ToContainerConfig for AppService {
             env: Some(
                 self.env_vars
                     .iter()
-                    .map(|(key, value)| (key, escape_sh(value)))
+                    .map(|(key, value)| {
+                        (
+                            key,
+                            if value.is_empty() {
+                                // TODO: store all env in context
+                                std::env::var(key).unwrap_or_default()
+                            } else {
+                                value.to_string()
+                            },
+                        )
+                    })
+                    .map(|(key, value)| (key, escape_sh(&value)))
                     .map(|(key, value)| format!("{key}={value}"))
                     .collect(),
             ),

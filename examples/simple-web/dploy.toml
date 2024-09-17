@@ -2,6 +2,8 @@ name = "simple-web"
 
 ports = [3000]
 
+env = ["EXAMPLE_ENV"]
+
 volumes = ["/app/data"]
 
 watch = ["src"]
