@@ -15,7 +15,7 @@ const DEFAULT_USER: &str = "admin";
 const DEFAULT_PASSWORD: &str = "admin";
 
 const IMAGE_NAME: &str = "postgres";
-const DATA_PATH: &str = "/var/lib/postgresql/data";
+const DATA_PATH: &str = "/var/lib/postgresql/18";
 
 const SERVICE_KIND: ServiceKind = ServiceKind::Postgres;
 

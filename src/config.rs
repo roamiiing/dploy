@@ -54,6 +54,14 @@ pub struct TopLevelAppConfig {
     #[serde(default = "constants::get_default_dockerfile_name")]
     dockerfile: String,
 
+    /// Docker context
+    #[serde(default = "constants::get_default_docker_context")]
+    context: String,
+
+    /// Paths to .dockerignore files
+    #[serde(default = "constants::get_default_ignore_files")]
+    ignore_files: Vec<String>,
+
     /// Names of environment variables of the application service
     #[serde(default)]
     env: Vec<String>,
@@ -101,6 +109,14 @@ pub struct TopLevelOverrideConfig {
     /// Relative path to the Dockerfile
     #[serde(default)]
     dockerfile: Option<String>,
+
+    /// Docker context
+    #[serde(default)]
+    context: Option<String>,
+
+    /// Paths to .dockerignore files
+    #[serde(default)]
+    ignore_files: Option<Vec<String>>,
 
     /// Names of environment variables of the application service
     #[serde(default)]
@@ -154,6 +170,22 @@ impl AppConfig {
             context,
             |config| &config.dockerfile,
             |config| config.dockerfile.as_ref(),
+        )
+    }
+
+    pub fn context(&self, context: &OverrideContext) -> &str {
+        self.resolve_field(
+            context,
+            |config| &config.context,
+            |config| config.context.as_ref(),
+        )
+    }
+
+    pub fn ignore_files(&self, context: &OverrideContext) -> &[String] {
+        self.resolve_field(
+            context,
+            |config| &config.ignore_files,
+            |config| config.ignore_files.as_ref(),
         )
     }
 

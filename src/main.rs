@@ -34,6 +34,13 @@ async fn main() -> Result<()> {
 async fn run_cli() -> Result<()> {
     let args = cli::Args::try_parse()?;
 
+    let config_path = path::PathBuf::from(&args.config);
+
+    let Some(cwd) = config_path.parent() else {
+        anyhow::bail!("Invalid config path")
+    };
+    std::env::set_current_dir(cwd)?;
+
     presentation::print_cli_info();
 
     let namespace = args.namespace();
@@ -46,7 +53,11 @@ async fn run_cli() -> Result<()> {
         command: args.command().into(),
     };
 
-    let file_contents = match fs::read_to_string(&args.config) {
+    let Some(file_name) = config_path.file_name() else {
+        anyhow::bail!("Invalid config path")
+    };
+
+    let file_contents = match fs::read_to_string(file_name) {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             presentation::print_config_not_found_error();
@@ -55,15 +66,7 @@ async fn run_cli() -> Result<()> {
         Err(error) => return Err(error.into()),
     };
     let app_config: config::AppConfig = toml::from_str(&file_contents)?;
-    //
-    // // mutate CWD to the location where the config file is
-    // std::env::set_current_dir(
-    //     path::PathBuf::from(&args.config)
-    //         .parent()
-    //         .expect("Invalid config path"),
-    // )
-    // .expect("Invalid config path");
-    //
+
     let context = Arc::new(context::Context::new(args, app_config, override_context));
     let services = services::Services::from_context(&context);
 

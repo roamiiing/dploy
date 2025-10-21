@@ -19,6 +19,8 @@ pub struct Context {
 
     app_config: AppConfig,
 
+    config_path: String,
+
     override_context: config::OverrideContext,
 }
 
@@ -28,15 +30,33 @@ impl Context {
         app_config: config::AppConfig,
         override_context: config::OverrideContext,
     ) -> Self {
+        let config_path = args.config().to_string();
+
         Self {
             args,
             app_config,
             override_context,
+            config_path,
         }
     }
 
     pub fn args(&self) -> &Args {
         &self.args
+    }
+
+    pub fn config_path(&self) -> &str {
+        &self.config_path
+    }
+
+    pub fn config_dir_relative_to_docker_context(&self) -> PathBuf {
+        let config_path = PathBuf::from(".").canonicalize().unwrap();
+        let docker_context = PathBuf::from(self.app_config().context(&self.override_context))
+            .canonicalize()
+            .unwrap();
+
+        let diff = pathdiff::diff_paths(&config_path, &docker_context).unwrap();
+
+        PathBuf::from(self.app_config().context(&self.override_context)).join(diff)
     }
 
     pub fn override_context(&self) -> &config::OverrideContext {

@@ -2,13 +2,13 @@ FROM node:16
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY simple-web/package*.json ./
 
 ENV NODE_ENV=development
 
 RUN npm ci
 
-COPY . .
+COPY simple-web .
 
 EXPOSE 3000
 

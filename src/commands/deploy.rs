@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, HashSet},
-    fs,
+    env, fs,
     io::Write,
     path::Path,
     sync::Arc,
@@ -85,8 +85,10 @@ pub async fn deploy_watch(
     let watcher = debouncer.watcher();
 
     for path in watch_paths {
+        let final_path = env::current_dir()?.join(path);
+
         watcher
-            .watch(path, notify::RecursiveMode::Recursive)
+            .watch(&final_path, notify::RecursiveMode::Recursive)
             .context("Could not start watcher. Please make sure the folder exists")?;
     }
 

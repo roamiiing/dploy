@@ -8,7 +8,7 @@ use crate::{config, constants, services::ServiceKind};
 #[clap(propagate_version = true)]
 pub struct Args {
     /// Relative path to the config file
-    #[clap(short, long, default_value = "dploy.toml")]
+    #[clap(short, long, default_value = "./dploy.toml")]
     pub config: String,
 
     /// Namespace (or postfix) to use

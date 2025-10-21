@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, path};
 
 use anyhow::Result;
 use bollard::{container, image, models};
@@ -22,6 +22,8 @@ pub struct AppService {
     ports_mapping: Vec<(u16, u16)>,
     volumes: Vec<String>,
     dockerfile: String,
+    docker_context: String,
+    relative_path: path::PathBuf,
 }
 
 impl AppService {
@@ -65,6 +67,11 @@ impl AppService {
                 .app_config()
                 .dockerfile(context.override_context())
                 .to_owned(),
+            docker_context: context
+                .app_config()
+                .context(context.override_context())
+                .to_owned(),
+            relative_path: context.config_dir_relative_to_docker_context(),
         }
     }
 
@@ -72,12 +79,15 @@ impl AppService {
         &self.ports_mapping
     }
 
-    pub fn to_image_build_config(&self) -> image::BuildImageOptions<String> {
-        image::BuildImageOptions {
+    pub fn to_image_build_config(&self) -> Result<image::BuildImageOptions<String>> {
+        let dockerfile = self.relative_path.join(&self.dockerfile);
+        let dockerfile = dockerfile.strip_prefix(&self.docker_context)?;
+
+        Ok(image::BuildImageOptions {
             t: self.image_name.clone(),
-            dockerfile: self.dockerfile.clone(),
+            dockerfile: dockerfile.to_string_lossy().to_string(),
             ..Default::default()
-        }
+        })
     }
 }
 
